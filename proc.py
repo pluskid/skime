@@ -1,0 +1,2 @@
+class Procedure(object):
+    pass
