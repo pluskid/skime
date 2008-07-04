@@ -26,20 +26,30 @@ instructions:
     tags: [ctx_switch, ctrl_flow]
     desc: Return from a procedure.
     operands: []
-    stack_before: [return_value]
+    stack_before: []
     stack_after: []
     code: |
-      pass
+      pctx = ctx.parent
+      ctx.vm.ctx = pctx
+      if pctx is not None:
+          retval = ctx.pop()
+          pctx.push(retval)
 
   -
     name: call
     tags: [ctx_switch, ctrl_flow]
     desc: Call a procedure.
-    operands: []
-    stack_before: []
-    stack_after: []
+    operands: [name, argc]
+    stack_before: [...]
+    stack_after: [retval]
     code: |
-      pass
+      argc = get_param(ctx, 2)
+      
+      nctx = Context(ctx.vm, ctx.proc)
+      nctx.locals = ctx.pop_n(argc)
+
+      ctx.ip += $(insn_len)
+      ctx.vm.ctx = nctx
 
   -
     name: push_local
@@ -50,8 +60,8 @@ instructions:
     stack_after: [value]
     code: |
       idx = get_param(ctx, 1)
-      loc = ctx.proc.locals[idx]
-      ctx.vm.stk_push(loc)
+      loc = ctx.locals[idx]
+      ctx.push(loc)
 
   -
     name: set_local
@@ -62,8 +72,8 @@ instructions:
     stack_after: []
     code: |
       idx = get_param(ctx, 1)
-      val = ctx.vm.stk_pop()
-      ctx.proc.locals[idx] = val
+      val = ctx.pop()
+      ctx.locals[idx] = val
 
   -
     name: push_literal
@@ -75,7 +85,7 @@ instructions:
     code: |
       idx = get_param(ctx, 1)
       lit = ctx.proc.literals[idx]
-      ctx.vm.stk_push(lit)
+      ctx.push(lit)
 
   -
     name: push_0
@@ -85,7 +95,7 @@ instructions:
     stack_before: []
     stack_after: [0]
     code: |
-      ctx.vm.stk_push(0)
+      ctx.push(0)
 
   -
     name: push_1
@@ -95,7 +105,7 @@ instructions:
     stack_before: []
     stack_after: [0]
     code: |
-      ctx.vm.stk_push(1)
+      ctx.push(1)
 
   -
     name: dup
@@ -105,7 +115,7 @@ instructions:
     stack_before: []
     stack_after: [value]
     code: |
-      ctx.vm.stk_push(ctx.vm.stk_top())
+      ctx.push(ctx.top())
 
   -
     name: plus
@@ -115,8 +125,8 @@ instructions:
     stack_before: [a, b]
     stack_after: [b+a]
     code: |
-      res = ctx.vm.stk_pop() + ctx.vm.stk_pop()
-      ctx.vm.stk_push(res)
+      res = ctx.pop() + ctx.pop()
+      ctx.push(res)
 
   -
     name: minus
@@ -126,8 +136,8 @@ instructions:
     stack_before: [a, b]
     stack_after: [b-a]
     code: |
-      res = ctx.vm.stk_pop() - ctx.vm.stk_pop()
-      ctx.vm.stk_push(res)
+      res = ctx.pop() - ctx.pop()
+      ctx.push(res)
 
   -
     name: multiply
@@ -137,8 +147,8 @@ instructions:
     stack_before: [a, b]
     stack_after: [b*a]
     code: |
-      res = ctx.vm.stk_pop() * ctx.vm.stk_pop()
-      ctx.vm.stk_push(res)
+      res = ctx.pop() * ctx.pop()
+      ctx.push(res)
 
   -
     name: divide
@@ -148,8 +158,8 @@ instructions:
     stack_before: [a, b]
     stack_after: [b/a]
     code: |
-      res = ctx.vm.stk_pop() / ctx.vm.stk_pop()
-      ctx.vm.stk_push(res)
+      res = ctx.pop() / ctx.pop()
+      ctx.push(res)
 
   -
     name: equal
@@ -159,8 +169,8 @@ instructions:
     stack_before: [a, b]
     stack_after: [b==a]
     code: |
-      res = (ctx.vm.stk_pop() == ctx.vm.stk_pop())
-      ctx.vm.stk_push(res)
+      res = (ctx.pop() == ctx.pop())
+      ctx.push(res)
 
   -
     name: goto
@@ -182,7 +192,7 @@ instructions:
     stack_after: []
     code: |
       ip = get_param(ctx, 1)
-      cond = ctx.vm.stk_pop()
+      cond = ctx.pop()
       if cond is True:
           ctx.ip = ip
       else:
@@ -197,7 +207,7 @@ instructions:
     stack_after: []
     code: |
       ip = get_param(ctx, 1)
-      cond = ctx.vm.stk_pop()
+      cond = ctx.pop()
       if cond is not True:
           ctx.ip = ip
       else:
