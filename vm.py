@@ -1,5 +1,5 @@
 from ctx import Context
-import iseq
+import insns
 
 class VM(object):
 
@@ -8,7 +8,7 @@ class VM(object):
         self.ctx = None
 
     def run(self):
-        iseq.run(self)
+        insns.run(self)
         
     def call(self, proc, argc):
         ctx = Context(self.ctx, proc)

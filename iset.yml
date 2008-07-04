@@ -1,0 +1,204 @@
+tags:
+  - ctrl_flow
+  - ctx_switch
+
+# Instructions
+#
+# The opcode is the index of each instruction. Stack before and after
+# instruction is only for documenting purpose. The elements are
+# specified from bottom to top. E.g:
+#
+#   stack_before: [a, b]
+#   stack_after: [b-a]
+#
+# will be
+#		       
+#   +---------+	                  
+#   |    b    |	       	       	  
+#   +---------+   ==>  	+---------+
+#   |    a    |		|   b-a   |
+#   +---------+		+---------+
+#
+
+instructions:
+  -
+    name: ret
+    tags: [ctx_switch, ctrl_flow]
+    desc: Return from a procedure.
+    operands: []
+    stack_before: [return_value]
+    stack_after: []
+    code: |
+      pass
+
+  -
+    name: call
+    tags: [ctx_switch, ctrl_flow]
+    desc: Call a procedure.
+    operands: []
+    stack_before: []
+    stack_after: []
+    code: |
+      pass
+
+  -
+    name: push_local
+    tags: []
+    desc: Push value of a local variable to operand stack.
+    operands: [local]
+    stack_before: []
+    stack_after: [value]
+    code: |
+      idx = get_param(ctx, 1)
+      loc = ctx.proc.locals[idx]
+      ctx.vm.stk_push(loc)
+
+  -
+    name: set_local
+    tags: []
+    desc: Pop the stack top and assign it to a local variable.
+    operands: [local]
+    stack_before: [value]
+    stack_after: []
+    code: |
+      idx = get_param(ctx, 1)
+      val = ctx.vm.stk_pop()
+      ctx.proc.locals[idx] = val
+
+  -
+    name: push_literal
+    tags: []
+    desc: Push a literal to operand stack.
+    operands: [literal]
+    stack_before: []
+    stack_after: [value]
+    code: |
+      idx = get_param(ctx, 1)
+      lit = ctx.proc.literals[idx]
+      ctx.vm.stk_push(lit)
+
+  -
+    name: push_0
+    tags: []
+    desc: Push 0 to operand stack.
+    operands: []
+    stack_before: []
+    stack_after: [0]
+    code: |
+      ctx.vm.stk_push(0)
+
+  -
+    name: push_1
+    tags: []
+    desc: Push 1 to operand stack.
+    operands: []
+    stack_before: []
+    stack_after: [0]
+    code: |
+      ctx.vm.stk_push(1)
+
+  -
+    name: dup
+    tags: []
+    desc: Duplicate the stack top object.
+    operands: []
+    stack_before: []
+    stack_after: [value]
+    code: |
+      ctx.vm.stk_push(ctx.vm.stk_top())
+
+  -
+    name: plus
+    tags: []
+    desc: Performan arithmetic +
+    operands: []
+    stack_before: [a, b]
+    stack_after: [b+a]
+    code: |
+      res = ctx.vm.stk_pop() + ctx.vm.stk_pop()
+      ctx.vm.stk_push(res)
+
+  -
+    name: minus
+    tags: []
+    desc: Performan arithmetic -
+    operands: []
+    stack_before: [a, b]
+    stack_after: [b-a]
+    code: |
+      res = ctx.vm.stk_pop() - ctx.vm.stk_pop()
+      ctx.vm.stk_push(res)
+
+  -
+    name: multiply
+    tags: []
+    desc: Performan arithmetic *
+    operands: []
+    stack_before: [a, b]
+    stack_after: [b*a]
+    code: |
+      res = ctx.vm.stk_pop() * ctx.vm.stk_pop()
+      ctx.vm.stk_push(res)
+
+  -
+    name: divide
+    tags: []
+    desc: Performance arithmetic /
+    operands: []
+    stack_before: [a, b]
+    stack_after: [b/a]
+    code: |
+      res = ctx.vm.stk_pop() / ctx.vm.stk_pop()
+      ctx.vm.stk_push(res)
+
+  -
+    name: equal
+    tags: []
+    desc: Test equality.
+    operands: []
+    stack_before: [a, b]
+    stack_after: [b==a]
+    code: |
+      res = (ctx.vm.stk_pop() == ctx.vm.stk_pop())
+      ctx.vm.stk_push(res)
+
+  -
+    name: goto
+    tags: [ctrl_flow]
+    desc: Unconditional jump.
+    operands: [ip]
+    stack_before: []
+    stack_after: []
+    code: |
+      ip = get_param(ctx, 1)
+      ctx.ip = ip
+
+  -
+    name: goto_if_true
+    tags: [ctrl_flow]
+    desc: Jump if the stack top is true.
+    operands: [ip]
+    stack_before: [condition]
+    stack_after: []
+    code: |
+      ip = get_param(ctx, 1)
+      cond = ctx.vm.stk_pop()
+      if cond is True:
+          ctx.ip = ip
+      else:
+          ctx.ip += $(insn_len)
+
+  -
+    name: goto_if_not_true
+    tags: [ctrl_flow]
+    desc: Jump if the stack top is not true.
+    operands: [ip]
+    stack_before: [condition]
+    stack_after: []
+    code: |
+      ip = get_param(ctx, 1)
+      cond = ctx.vm.stk_pop()
+      if cond is not True:
+          ctx.ip = ip
+      else:
+          ctx.ip += $(insn_len)
