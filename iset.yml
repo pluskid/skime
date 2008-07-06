@@ -96,6 +96,24 @@ instructions:
       ctx.push(loc)
 
   -
+    name: set_local_depth
+    tags: []
+    desc: Pop a value and assign to a local variable of lexical parent.
+    operands: [depth, local]
+    stack_before: [value]
+    stack_after: []
+    code: |
+      depth = get_param(ctx, 1)
+      idx = get_param(ctx, 2)
+      value = ctx.pop()
+
+      pctx = ctx
+      while depth > 0:
+          pctx = pctx.proc.lexical_parent
+          depth -= 1
+      pctx.locals[idx] = value
+
+  -
     name: push_literal
     tags: []
     desc: Push a literal to operand stack.
