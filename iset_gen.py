@@ -102,8 +102,6 @@ def run(vm):
         INSN_ACTION[opcode](ctx)
         if has_tag(opcode, TAG_CTX_SWITCH):
             ctx = vm.ctx
-            if ctx is None:
-                break
 """
 
 TMPL_ISET = """\

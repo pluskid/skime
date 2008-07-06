@@ -31,9 +31,8 @@ instructions:
     code: |
       pctx = ctx.prev
       ctx.vm.ctx = pctx
-      if pctx is not None:
-          retval = ctx.pop()
-          pctx.push(retval)
+      retval = ctx.pop()
+      pctx.push(retval)
 
   -
     name: call

@@ -51,9 +51,6 @@ if __name__ == '__main__':
 #                             "ret"])
 #    proc.literals = ['fact']
 
-    ctx = Context(vm, script)
-    vm.ctx = ctx
-    vm.ctx.locals = map(lambda x: None, ctx.proc.locals)
-    vm.run()
+    vm.run(script)
 
     print vm.ctx.pop()

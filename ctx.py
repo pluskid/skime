@@ -1,4 +1,3 @@
-
 class Context(object):
     def __init__(self, vm, proc):
         self.vm = vm
@@ -29,3 +28,21 @@ class Context(object):
         return self.stack.pop()
     def top(self):
         return self.stack[-1]
+
+
+class TopLevelContext(object):
+    "VM top level context."
+    def __init__(self, vm):
+        self.vm = vm
+        self.prev = None
+        self.ip = 1 # ip always greater than len(bytecode)
+        self.bytecode = []
+
+        self.locals = []
+        self.local_maps = {}
+
+    def find_local(self, name):
+        idx = self.local_maps[name]
+        if idx:
+            return idx
+        raise ValueError("%s not found" % name)
