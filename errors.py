@@ -9,3 +9,6 @@ class UnboundVariable(CompileError):
         Exception.__init__(self, message)
         self.name = name
 
+class WrongArgNumber(CompileError):
+    pass
+

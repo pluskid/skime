@@ -1,3 +1,5 @@
+from prim import load_primitives
+
 class Context(object):
     def __init__(self, vm, proc):
         self.vm = vm
@@ -41,8 +43,15 @@ class TopLevelContext(object):
         self.locals = []
         self.local_maps = {}
 
+        load_primitives(self)
+
     def find_local(self, name):
         idx = self.local_maps[name]
         if idx:
             return idx
         raise ValueError("%s not found" % name)
+
+    def add_local(self, name, value):
+        idx = len(self.locals)
+        self.locals.append(value)
+        self.local_maps[name] = idx

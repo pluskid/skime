@@ -46,14 +46,22 @@ instructions:
       
       proc = ctx.pop()
 
-      nctx = Context(ctx.vm, proc)
-      i = 0
-      while i < argc:
-          nctx.locals[i] = ctx.pop()
-          i += 1
-
-      ctx.ip += $(insn_len)
-      ctx.vm.ctx = nctx
+      if isinstance(proc, Procedure):
+          nctx = Context(ctx.vm, proc)
+          i = 0
+          while i < argc:
+              nctx.locals[i] = ctx.pop()
+              i += 1
+    
+          ctx.ip += $(insn_len)
+          ctx.vm.ctx = nctx
+      elif isinstance(proc, Primitive):
+          proc.check_arity(argc)
+          args = []
+          while argc > 0:
+              args.append(ctx.pop())
+              argc -= 0
+          ctx.push(proc.call(*args))
 
   -
     name: push_local
