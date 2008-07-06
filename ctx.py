@@ -15,6 +15,13 @@ class Context(object):
     def parent_set(self, val):
         raise AttributeError("attribute 'parent' is read only")
     parent = property(parent_get, parent_set)
+
+    def find_local(self, name):
+        """\
+        Find index of local variable in the context.
+        Raise ValueError if not found.
+        """
+        return self.proc.locals.index(name)
         
     def push(self, val):
         self.stack.append(val)

@@ -84,6 +84,9 @@ class Generator(object):
         self.stream.append(('generate_proc', g))
         
         return g
+
+    def find_local(self, name):
+        return self.locals.index(name)
     
     def generate(self):
         "Generate a Procedure based on the knowledge collected."
@@ -109,7 +112,7 @@ class Generator(object):
                     self.literals.append(args[0])
                     bc.append(idx)
                 elif insn_name in ['push_local', 'set_local']:
-                    bc.append(self.locals.index(args[0]))
+                    bc.append(self.find_local(args[0]))
                 elif insn_name in ['push_local_depth', 'set_local_depth']:
                     bc.append(args[0])
                     p = self
@@ -117,7 +120,7 @@ class Generator(object):
                     while i > 0:
                         p = p.parent
                         i -= 1
-                    bc.append(p.locals.index(args[1]))
+                    bc.append(p.find_local(args[1]))
                 else:
                     for x in args:
                         bc.append(x)
@@ -167,10 +170,10 @@ class Compiler(object):
         depth = 0
         while ctx is not None:
             try:
-                return (depth, ctx.proc.locals.index(name))
+                return (depth, ctx.find_local(name))
             except ValueError:
                 depth += 1
-                ctx = ctx.proc.lexical_parent
+                ctx = ctx.parent
         return (-1, 0)
         
     def generate_body(self, ctx, g, body):
