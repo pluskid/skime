@@ -29,7 +29,7 @@ instructions:
     stack_before: []
     stack_after: []
     code: |
-      pctx = ctx.parent
+      pctx = ctx.prev
       ctx.vm.ctx = pctx
       if pctx is not None:
           retval = ctx.pop()
@@ -93,7 +93,7 @@ instructions:
 
       pctx = ctx
       while depth > 0:
-          pctx = pctx.proc.lexical_parent
+          pctx = pctx.parent
           depth -= 1
       loc = pctx.locals[idx]
       ctx.push(loc)
@@ -112,7 +112,7 @@ instructions:
 
       pctx = ctx
       while depth > 0:
-          pctx = pctx.proc.lexical_parent
+          pctx = pctx.parent
           depth -= 1
       pctx.locals[idx] = value
 
@@ -155,6 +155,8 @@ instructions:
     operands: []
     stack_before: []
     stack_after: [None]
+    code: |
+      ctx.push(None)
 
   -
     name: dup

@@ -8,10 +8,3 @@ class VM(object):
 
     def run(self):
         insns.run(self)
-        
-    def call(self, proc, argc):
-        ctx = Context(self.ctx, proc)
-        self.ctx = ctx
-
-    def ret(self):
-        self.ctx = self.ctx.parent

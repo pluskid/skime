@@ -2,7 +2,7 @@
 class Context(object):
     def __init__(self, vm, proc):
         self.vm = vm
-        self.parent = vm.ctx
+        self.prev = vm.ctx
         self.proc = proc
         
         self.ip = 0
@@ -10,6 +10,12 @@ class Context(object):
         self.stack = []
         self.locals = map(lambda x: None, proc.locals)
 
+    def parent_get(self):
+        return self.proc.lexical_parent
+    def parent_set(self, val):
+        raise AttributeError("attribute 'parent' is read only")
+    parent = property(parent_get, parent_set)
+        
     def push(self, val):
         self.stack.append(val)
     def pop(self):
