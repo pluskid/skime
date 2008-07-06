@@ -37,7 +37,10 @@ class PyPrimitive(Primitive):
                                  (self.proc.__name__, max, argc))
 
     def call(self, *args):
-        self.proc(*args)
+        return self.proc(*args)
+
+    def __str__(self):
+        return "<skime primitive => %s>" % self.proc.__name__
 
 
 def load_primitives(ctx):

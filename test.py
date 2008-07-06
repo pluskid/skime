@@ -7,7 +7,7 @@ from compiler import Generator
 if __name__ == '__main__':
     vm = VM()
 
-    gs = Generator()
+    gs = Generator(parent=vm.ctx)
     gs.def_local('fact')
     g = gs.push_proc(args=['n'])
     gs.emit('make_lambda')
@@ -26,7 +26,8 @@ if __name__ == '__main__':
     g.emit('push_local_depth', 1, 'fact')
     g.emit('call', 1)
     g.emit('push_local', 'n')
-    g.emit('multiply')
+    g.emit('push_local_depth', 2, '*')
+    g.emit('call', 2)
     g.emit('goto', 'ret')
     g.def_label('ret_1')
     g.emit('push_1')
@@ -50,6 +51,8 @@ if __name__ == '__main__':
 #                             "push_1",
 #                             "ret"])
 #    proc.literals = ['fact']
+
+    script.lexical_parent = vm.ctx
 
     vm.run(script)
 
