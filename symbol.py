@@ -1,3 +1,5 @@
+import weakref
+
 class Symbol(object):
     symbols = weakref.WeakValueDictionary({})
 
