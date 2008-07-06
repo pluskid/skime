@@ -7,15 +7,19 @@ from compiler import Generator
 if __name__ == '__main__':
     vm = VM()
 
-    g = Generator(['n'])
+    gs = Generator()
+    gs.def_local('fact')
+    
+    g = Generator(parent=gs, args=['n'])
     g.emit('push_local', 'n')
     g.emit('push_1')
-    g.emit('equal')
+    g.emit('test_equal')
     g.emit('goto_if_true', 'ret_1')
     g.emit('push_1')
     g.emit('push_local', 'n')
     g.emit('minus')
-    g.emit('call', 0, 1)
+    g.emit('push_local_depth', 1, 'fact')
+    g.emit('call', 1)
     g.emit('push_local', 'n')
     g.emit('multiply')
     g.emit('goto', 'ret')
@@ -24,7 +28,16 @@ if __name__ == '__main__':
     g.def_label('ret')
     g.emit('ret')
 
-    proc = g.generate()
+    fact = g.generate()
+
+    gs.emit('push_literal', fact)
+    gs.emit('make_lambda')
+    gs.emit('set_local', 'fact')
+    gs.emit('push_literal', 5)
+    gs.emit('push_local', 'fact')
+    gs.emit('call', 1)
+
+    script = gs.generate()
     
 #     proc = Procedure()
 #     proc.bytecode = encode(["push_local", 0,
@@ -42,9 +55,9 @@ if __name__ == '__main__':
 #                             "ret"])
 #    proc.literals = ['fact']
 
-    ctx = Context(vm, proc)
+    ctx = Context(vm, script)
     vm.ctx = ctx
-    vm.ctx.locals = [5]
+    vm.ctx.locals = map(lambda x: None, ctx.proc.locals)
     vm.run()
 
-    print ctx.pop()
+    print vm.ctx.pop()

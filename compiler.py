@@ -13,7 +13,7 @@ class Generator(object):
     A Generator provide an easy way to genetate bytecode.
     """
 
-    def __init__(self, args):
+    def __init__(self, parent=None, args=[]):
         """\
         Create a generator for a procedure.
 
@@ -21,10 +21,11 @@ class Generator(object):
         """
         self.stream = []
         self.labels = {}
-        self.literal_names = []
         self.literals = []
         self.locals = args[:]
         self.ip = 0
+
+        self.parent = parent
 
     def emit(self, insn_name, *args):
         "Emit an instruction"
@@ -53,17 +54,6 @@ class Generator(object):
         "Define local without validation. Internal use only."
         self.locals += locals
 
-    def def_literal(self, name, value):
-        "Define a literal"
-        if self.literals.get(name) is not None:
-            raise TypeError, "Duplicated literal: %s" % name
-        self._def_literal(name, value)
-
-    def _def_literal(self, name, value):
-        "Define a literal without validation. Internal use only."
-        self.literal_names.append(name)
-        self.literals.append(value)
-
     def def_label(self, name):
         "Define a label at current ip."
         if self.labels.get(name) is not None:
@@ -86,9 +76,19 @@ class Generator(object):
             if insn_name in ['goto', 'goto_if_true', 'goto_if_not_true']:
                 bc.append(self.labels[args[0]])
             elif insn_name == 'push_literal':
-                bc.append(self.literal_names.index(args[0]))
+                idx = len(self.literals)
+                self.literals.append(args[0])
+                bc.append(idx)
             elif insn_name in ['push_local', 'set_local']:
                 bc.append(self.locals.index(args[0]))
+            elif insn_name in ['push_local_depth', 'set_local_depth']:
+                bc.append(args[0])
+                p = self
+                i = args[0]
+                while i > 0:
+                    p = p.parent
+                    i -= 1
+                bc.append(p.locals.index(args[1]))
             else:
                 for x in args:
                     bc.append(x)

@@ -39,13 +39,15 @@ instructions:
     name: call
     tags: [ctx_switch, ctrl_flow]
     desc: Call a procedure.
-    operands: [name, argc]
-    stack_before: [...]
+    operands: [argc]
+    stack_before: [..., proc]
     stack_after: [retval]
     code: |
-      argc = get_param(ctx, 2)
+      argc = get_param(ctx, 1)
       
-      nctx = Context(ctx.vm, ctx.proc)
+      proc = ctx.pop()
+
+      nctx = Context(ctx.vm, proc)
       nctx.locals = ctx.pop_n(argc)
 
       ctx.ip += $(insn_len)
@@ -74,6 +76,24 @@ instructions:
       idx = get_param(ctx, 1)
       val = ctx.pop()
       ctx.locals[idx] = val
+
+  -
+    name: push_local_depth
+    tags: []
+    desc: Push value of a local in lexical parent to operand stack.
+    operands: [depth, local]
+    stack_before: []
+    stack_after: [value]
+    code: |
+      depth = get_param(ctx, 1)
+      idx = get_param(ctx, 2)
+
+      pctx = ctx
+      while depth > 0:
+          pctx = pctx.proc.lexical_parent
+          depth -= 1
+      loc = pctx.locals[idx]
+      ctx.push(loc)
 
   -
     name: push_literal
@@ -162,7 +182,7 @@ instructions:
       ctx.push(res)
 
   -
-    name: equal
+    name: test_equal
     tags: []
     desc: Test equality.
     operands: []
@@ -212,3 +232,14 @@ instructions:
           ctx.ip = ip
       else:
           ctx.ip += $(insn_len)
+
+  -
+    name: make_lambda
+    tags: []
+    desc: Create a procedure.
+    operands: []
+    stack_before: [proc]
+    stack_after: [lambda]
+    code: |
+      proc = ctx.top()
+      proc.lexical_parent = ctx
