@@ -3,10 +3,15 @@ The compiler for skime. It compiles sexp to bytecode.
 """
 
 from array import array
+from types import NoneType
+
 from symbol import Symbol as sym
 from cons import Cons as cons
 from iset import INSN_MAP
 from proc import Procedure
+
+from errors import UnboundVariable
+from errors import CompileError
 
 class Generator(object):
     """\
@@ -24,6 +29,7 @@ class Generator(object):
         self.literals = []
         self.locals = args[:]
 
+        self.argc = len(args)
         self.ip = 0
         self.parent = parent
 
@@ -119,13 +125,95 @@ class Generator(object):
         proc.bytecode = bc
         proc.literals = self.literals[:]
         proc.locals = self.locals
+        proc.argc = self.argc
 
         return proc
 
 
 class Compiler(object):
+    sym_begin = sym("begin")
+    sym_define = sym("define")
+    
     def __init__(self):
         pass
 
-    def compile(self, lst):
-        pass
+    def compile(self, lst, ctx):
+        if type(lst) is sym:
+            depth, idx = lookup_variable(ctx, lst.name)
+            if depth < 0:
+                raise UnboundVariable(lst.name, "Unbound variable %s" % lst.name)
+
+            g = Generator(parent=ctx)
+            g.emit("push_local_depth", depth+1, idx)
+            g.emit("ret")
+        elif type(lst) in [unicode, str, float, int, long, NoneType]:
+            g = Generator(parent=ctx)
+            g.emit("push_literal", lst)
+            g.emit("ret")
+        elif type(lst) is cons:
+            if lst.car == Compiler.sym_begin:
+                g = Generator(parent=ctx)
+                generate_body(ctx, g, lst.cdr)
+        else:
+            raise CompileError("Cannot compile %s" % lst)
+
+        return g.generate()
+
+    ########################################
+    # Helper functions
+    ########################################
+    def lookup_variable(self, ctx, name):
+        "Lookup variables in lexical scope"
+        depth = 0
+        while ctx is not None:
+            try:
+                return (depth, ctx.proc.locals.index(name))
+            except ValueError:
+                depth += 1
+                ctx = ctx.proc.lexical_parent
+        return (-1, 0)
+        
+    def generate_body(self, ctx, g, body):
+        "Generate scope body."
+        if body is None:
+            g.emit("push_nil")
+
+        while body is not None:
+            expr = body.car
+            body = body.cdr
+            self.generate_expr(ctx, g, expr, keep=body==None)
+
+    def generate_expr(self, ctx, g, expr, keep=True):
+        """\
+        Generate instructions for an expression.
+
+        if keep == True, the value of the expression is kept on
+        the stack, otherwise, it is popped or never pushed.
+        """
+        if type(expr) is sym:
+            if keep:
+                depth, idx = lookup_variable(ctx, expr.name)
+                if depth < 0:
+                    raise UnboundVariable(expr.name, "Unbound variable %s" % expr.name)
+                if depth == 0:
+                    g.emit("push_local", idx)
+                else:
+                    g.emit("push_local_depth", depth, idx)
+
+        elif type(expr) in [unicode, str, float, int, long, NoneType]:
+            if keep:
+                g.emit("push_literal", expr)
+
+        elif type(expr) is cons:
+            if expr.car == Compiler.sym_define:
+                name = expr.cdr.car
+                g.def_local(name.name)
+                value = expr.cdr.cdr.car
+                self.generate_expr(ctx, g, expr, keep=True)
+                if keep:
+                    g.emit("dup")
+                g.emit("set_local", name.name)
+
+        else:
+            raise CompileError("Expecting atom or list, but got %s" % expr)
+

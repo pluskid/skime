@@ -149,6 +149,14 @@ instructions:
       ctx.push(1)
 
   -
+    name: push_nil
+    tags: []
+    desc: Push None to oeprand stack.
+    operands: []
+    stack_before: []
+    stack_after: [None]
+
+  -
     name: dup
     tags: []
     desc: Duplicate the stack top object.
