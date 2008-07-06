@@ -23,8 +23,8 @@ class Generator(object):
         self.labels = {}
         self.literals = []
         self.locals = args[:]
-        self.ip = 0
 
+        self.ip = 0
         self.parent = parent
 
     def emit(self, insn_name, *args):
@@ -63,6 +63,21 @@ class Generator(object):
     def _def_label(self, name):
         "Define a label at current ip without validation. Internal use only."
         self.labels[name] = self.ip
+
+    def push_proc(self, args=[]):
+        """\
+        Return a generator g for generating a procedure in the context. Use
+        g to generate the body of the procedure.
+
+        Later when self.generate is called, g.generate will be called
+        automatically to get the procedure object, add it to the literals
+        and push to the operand stack.
+        """
+        g = Generator(parent=self, args=args)
+        # generate_proc is a pseudo instruction
+        self.stream.append(('generate_proc', g))
+        
+        return g
     
     def generate(self):
         "Generate a Procedure based on the knowledge collected."
@@ -70,31 +85,47 @@ class Generator(object):
         
         bc = array('i')
         for insn_name, args in self.stream:
-            insn = INSN_MAP[insn_name]
-            bc.append(insn.opcode)
-
-            if insn_name in ['goto', 'goto_if_true', 'goto_if_not_true']:
-                bc.append(self.labels[args[0]])
-            elif insn_name == 'push_literal':
+            # pseudo instructions
+            if insn_name == 'generate_proc':
                 idx = len(self.literals)
-                self.literals.append(args[0])
+                self.literals.append(args.generate())
+                bc.append(INSN_MAP['push_literal'].opcode)
                 bc.append(idx)
-            elif insn_name in ['push_local', 'set_local']:
-                bc.append(self.locals.index(args[0]))
-            elif insn_name in ['push_local_depth', 'set_local_depth']:
-                bc.append(args[0])
-                p = self
-                i = args[0]
-                while i > 0:
-                    p = p.parent
-                    i -= 1
-                bc.append(p.locals.index(args[1]))
+            # real instructions
             else:
-                for x in args:
-                    bc.append(x)
+                insn = INSN_MAP[insn_name]
+                bc.append(insn.opcode)
+
+                if insn_name in ['goto', 'goto_if_true', 'goto_if_not_true']:
+                    bc.append(self.labels[args[0]])
+                elif insn_name == 'push_literal':
+                    idx = len(self.literals)
+                    self.literals.append(args[0])
+                    bc.append(idx)
+                elif insn_name in ['push_local', 'set_local']:
+                    bc.append(self.locals.index(args[0]))
+                elif insn_name in ['push_local_depth', 'set_local_depth']:
+                    bc.append(args[0])
+                    p = self
+                    i = args[0]
+                    while i > 0:
+                        p = p.parent
+                        i -= 1
+                    bc.append(p.locals.index(args[1]))
+                else:
+                    for x in args:
+                        bc.append(x)
                 
         proc.bytecode = bc
         proc.literals = self.literals[:]
         proc.locals = self.locals
 
         return proc
+
+
+class Compiler(object):
+    def __init__(self):
+        pass
+
+    def compile(self, lst):
+        pass

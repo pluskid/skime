@@ -9,8 +9,13 @@ if __name__ == '__main__':
 
     gs = Generator()
     gs.def_local('fact')
-    
-    g = Generator(parent=gs, args=['n'])
+    g = gs.push_proc(args=['n'])
+    gs.emit('make_lambda')
+    gs.emit('set_local', 'fact')
+    gs.emit('push_literal', 5)
+    gs.emit('push_local', 'fact')
+    gs.emit('call', 1)
+
     g.emit('push_local', 'n')
     g.emit('push_1')
     g.emit('test_equal')
@@ -27,15 +32,6 @@ if __name__ == '__main__':
     g.emit('push_1')
     g.def_label('ret')
     g.emit('ret')
-
-    fact = g.generate()
-
-    gs.emit('push_literal', fact)
-    gs.emit('make_lambda')
-    gs.emit('set_local', 'fact')
-    gs.emit('push_literal', 5)
-    gs.emit('push_local', 'fact')
-    gs.emit('call', 1)
 
     script = gs.generate()
     
