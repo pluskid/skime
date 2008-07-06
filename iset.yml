@@ -48,7 +48,10 @@ instructions:
       proc = ctx.pop()
 
       nctx = Context(ctx.vm, proc)
-      nctx.locals = ctx.pop_n(argc)
+      i = 0
+      while i < argc:
+          nctx.locals[i] = ctx.pop()
+          i += 1
 
       ctx.ip += $(insn_len)
       ctx.vm.ctx = nctx
