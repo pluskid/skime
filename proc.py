@@ -1,10 +1,13 @@
 from errors import WrongArgNumber
 
 class Procedure(object):
-    def __init__(self):
+    def __init__(self, argc, fixed_argc, locals, literals, bytecode):
         self.lexical_parent = None
-        self.argc = 0
-        self.fixed_argc = 0
+        self.argc = argc
+        self.fixed_argc = fixed_argc
+        self.locals = locals
+        self.literals = literals
+        self.bytecode = bytecode
 
     def check_arity(self, argc):
         if self.fixed_argc == self.argc:
