@@ -32,7 +32,7 @@ class Context(object):
         return self.stack[-1]
 
 
-class TopLevelContext(object):
+class TopLevelContext(Context):
     "VM top level context."
     def __init__(self, vm):
         self.vm = vm
@@ -42,12 +42,19 @@ class TopLevelContext(object):
 
         self.locals = []
         self.local_maps = {}
+        self.stack = []
 
         load_primitives(self)
 
+    def parent_get(self):
+        return None
+    def parent_set(self, val):
+        raise AttributeError("attribute 'parent' is read only")
+    parent = property(parent_get, parent_set)
+
     def find_local(self, name):
-        idx = self.local_maps[name]
-        if idx:
+        idx = self.local_maps.get(name)
+        if idx is not None:
             return idx
         raise ValueError("%s not found" % name)
 

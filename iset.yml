@@ -47,11 +47,13 @@ instructions:
       proc = ctx.pop()
 
       if isinstance(proc, Procedure):
+          if proc.argc != argc:
+              raise WrongArgNumber("Expecting %d arguments, but got %d" % (proc.argc, argc))
+
           nctx = Context(ctx.vm, proc)
-          i = 0
-          while i < argc:
-              nctx.locals[i] = ctx.pop()
-              i += 1
+          while argc > 0:
+              nctx.locals[argc-1] = ctx.pop()
+              argc -= 1
     
           ctx.vm.ctx = nctx
 
@@ -61,6 +63,7 @@ instructions:
           while argc > 0:
               args.append(ctx.pop())
               argc -= 1
+          args.reverse()
           ctx.push(proc.call(*args))
 
       ctx.ip += $(insn_len)

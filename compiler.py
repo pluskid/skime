@@ -113,14 +113,14 @@ class Generator(object):
                     bc.append(idx)
                 elif insn_name in ['push_local', 'set_local']:
                     bc.append(self.find_local(args[0]))
-                elif insn_name in ['push_local_depth', 'set_local_depth']:
-                    bc.append(args[0])
-                    p = self
-                    i = args[0]
-                    while i > 0:
-                        p = p.parent
-                        i -= 1
-                    bc.append(p.find_local(args[1]))
+#                 elif insn_name in ['push_local_depth', 'set_local_depth']:
+#                     bc.append(args[0])
+#                     p = self
+#                     i = args[0]
+#                     while i > 0:
+#                         p = p.parent
+#                         i -= 1
+#                     bc.append(p.find_local(args[1]))
                 else:
                     for x in args:
                         bc.append(x)
@@ -156,7 +156,7 @@ class Compiler(object):
         elif type(lst) is cons:
             if lst.car == Compiler.sym_begin:
                 g = Generator(parent=ctx)
-                generate_body(ctx, g, lst.cdr)
+                self.generate_body(ctx, g, lst.cdr)
         else:
             raise CompileError("Cannot compile %s" % lst)
 
@@ -184,7 +184,9 @@ class Compiler(object):
         while body is not None:
             expr = body.car
             body = body.cdr
-            self.generate_expr(ctx, g, expr, keep=body==None)
+            self.generate_expr(ctx, g, expr, keep=body is None)
+
+        g.emit("ret")
 
     def generate_expr(self, ctx, g, expr, keep=True):
         """\
@@ -195,7 +197,7 @@ class Compiler(object):
         """
         if type(expr) is sym:
             if keep:
-                depth, idx = lookup_variable(ctx, expr.name)
+                depth, idx = self.lookup_variable(g, expr.name)
                 if depth < 0:
                     raise UnboundVariable(expr.name, "Unbound variable %s" % expr.name)
                 if depth == 0:
@@ -216,6 +218,15 @@ class Compiler(object):
                 if keep:
                     g.emit("dup")
                 g.emit("set_local", name.name)
+            else:
+                argc = 0
+                arg  = expr.cdr
+                while arg is not None:
+                    self.generate_expr(ctx, g, arg.car, keep=True)
+                    arg = arg.cdr
+                    argc += 1
+                self.generate_expr(ctx, g, expr.car, keep=True)
+                g.emit("call", argc)
 
         else:
             raise CompileError("Expecting atom or list, but got %s" % expr)
