@@ -167,7 +167,7 @@ class Compiler(object):
             g.emit("ret")
         elif type(lst) is cons:
             if lst.car == Compiler.sym_begin:
-                self.generate_body(ctx, g, lst.cdr)
+                self.generate_body(g, lst.cdr)
         else:
             raise CompileError("Cannot compile %s" % lst)
 
@@ -176,7 +176,7 @@ class Compiler(object):
     ########################################
     # Helper functions
     ########################################
-    def generate_body(self, ctx, g, body):
+    def generate_body(self, g, body):
         "Generate scope body."
         if body is None:
             g.emit("push_nil")
@@ -184,7 +184,7 @@ class Compiler(object):
         while body is not None:
             expr = body.car
             body = body.cdr
-            self.generate_expr(ctx, g, expr, keep=body is None)
+            self.generate_expr(g, expr, keep=body is None)
 
         g.emit("ret")
 
@@ -192,7 +192,7 @@ class Compiler(object):
         self.label_seed += 1
         return "__lbl_%d" % self.label_seed
 
-    def generate_expr(self, ctx, g, expr, keep=True):
+    def generate_expr(self, g, expr, keep=True):
         """\
         Generate instructions for an expression.
 
@@ -212,31 +212,31 @@ class Compiler(object):
                 name = expr.cdr.car
                 g.def_local(name.name)
                 value = expr.cdr.cdr.car
-                self.generate_expr(ctx, g, expr, keep=True)
+                self.generate_expr(g, expr, keep=True)
                 if keep:
                     g.emit("dup")
                 g.emit_local("set", name.name)
 
             elif expr.car == Compiler.sym_if:
-                self.generate_if_expr(ctx, g, expr.cdr, keep=keep)
+                self.generate_if_expr(g, expr.cdr, keep=keep)
 
             elif expr.car == Compiler.sym_lambda:
-                self.generate_lambda(ctx, g, expr.cdr, keep=keep)
+                self.generate_lambda(g, expr.cdr, keep=keep)
                 
             else:
                 argc = 0
                 arg  = expr.cdr
                 while arg is not None:
-                    self.generate_expr(ctx, g, arg.car, keep=True)
+                    self.generate_expr(g, arg.car, keep=True)
                     arg = arg.cdr
                     argc += 1
-                self.generate_expr(ctx, g, expr.car, keep=True)
+                self.generate_expr(g, expr.car, keep=True)
                 g.emit("call", argc)
 
         else:
             raise CompileError("Expecting atom or list, but got %s" % expr)
 
-    def generate_if_expr(self, ctx, g, expr, keep=True):
+    def generate_if_expr(self, g, expr, keep=True):
         if expr is None:
             raise SyntaxError("Missing condition expression in 'if'")
             
@@ -252,7 +252,7 @@ class Compiler(object):
                 raise SyntaxError("Extra expression in 'if'")
             expelse = expelse.car
 
-            self.generate_expr(ctx, g, cond, keep=True)
+            self.generate_expr(g, cond, keep=True)
                 
             if keep is True:
                 lbl_then = self.next_label()
@@ -261,28 +261,28 @@ class Compiler(object):
                 if expelse is None:
                     g.emit('push_nil')
                 else:
-                    self.generate_expr(ctx, g, expelse, keep=True)
+                    self.generate_expr(g, expelse, keep=True)
                 g.emit('goto', lbl_end)
                 g.def_label(lbl_then)
-                self.generate_expr(ctx, g, expthen, keep=True)
+                self.generate_expr(g, expthen, keep=True)
                 g.def_label(lbl_end)
             else:
                 if expelse is None:
                     lbl_end = self.next_label()
                     g.emit('goto_if_not_true', lbl_end)
-                    self.generate_expr(ctx, g, expthen, keep=False)
+                    self.generate_expr(g, expthen, keep=False)
                     g.def_label(lbl_end)
                 else:
                     lbl_then = self.next_label()
                     lbl_end = self.next_label()
                     g.emit('goto_if_true', lbl_then)
-                    self.generate_expr(ctx, g, expelse, keep=False)
+                    self.generate_expr(g, expelse, keep=False)
                     g.emit('goto', lbl_end)
                     g.def_label(lbl_then)
-                    self.generate_expr(ctx, g, expthen, keep=False)
+                    self.generate_expr(g, expthen, keep=False)
                     g.def_label(lbl_end)
                     
-    def generate_lambda(self, ctx, g, expr, keep=True):
+    def generate_lambda(self, base_generator, expr, keep=True):
         if keep is not True:
             return  # lambda expression has no side-effect
         try:
@@ -303,8 +303,10 @@ class Compiler(object):
                 rest_arg = True
                 args = [arglst.name]
 
-            
-                
+            g = base_generator.push_proc(args=args, rest_arg=rest_arg)
+            self.generate_body(g, body)
+            base_generator.emit("make_lambda")
+
         except AttributeError:
             raise SyntaxError("Broken lambda expression")
         

@@ -71,10 +71,15 @@ if __name__ == '__main__':
 
     vm = VM()
     compiler = Compiler()
+#     sexp = [sym("begin"),
+#             [sym("if"), [sym('='), [sym('+'), 2, 3], 5, [sym('/'), 10, 2]],
+#              [sym("*"), 2, 3, 4, [sym("+"), 1, 2, 3]],
+#              100]]
     sexp = [sym("begin"),
-            [sym("if"), [sym('='), [sym('+'), 2, 3], 5, [sym('/'), 10, 2]],
-             [sym("*"), 2, 3, 4, [sym("+"), 1, 2, 3]],
-             100]]
+            [[sym("lambda"),
+              [sym("a"), sym("b")],
+              [sym("+"), sym("a"), sym("b")]],
+             1, 2]]
     sexp = list2cons(sexp)
     script = compiler.compile(sexp, vm.ctx)
 

@@ -14,5 +14,6 @@ class Cons(object):
         self.cdr = cdr
 
     def __eq__(self, other):
-        return self.car == other.car and \
+        return type(other) is Cons and \
+               self.car == other.car and \
                self.cdr == other.cdr
