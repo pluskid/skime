@@ -158,6 +158,7 @@ class Compiler(object):
     sym_begin = sym("begin")
     sym_define = sym("define")
     sym_if = sym("if")
+    sym_lambda = sym("lambda")
     
     def __init__(self):
         self.label_seed = 0
@@ -224,48 +225,7 @@ class Compiler(object):
                 g.emit_local("set", name.name)
 
             elif expr.car == Compiler.sym_if:
-                expr = expr.cdr
-                cond = expr.car
-                expthen = expr.cdr
-                if expthen is None:
-                    raise SyntaxError("Missing 'then' expression in 'if'")
-                expthen = expthen.car
-                
-                expelse = expr.cdr.cdr
-                if expelse is not None:
-                    if expelse.cdr is not None:
-                        raise SyntaxError("Extra expression in 'if'")
-                    expelse = expelse.car
-
-                self.generate_expr(ctx, g, cond, keep=True)
-                
-                if keep is True:
-                    lbl_then = self.next_label()
-                    lbl_end = self.next_label()
-                    g.emit('goto_if_true', lbl_then)
-                    if expelse is None:
-                        g.emit('push_nil')
-                    else:
-                        self.generate_expr(ctx, g, expelse, keep=True)
-                    g.emit('goto', lbl_end)
-                    g.def_label(lbl_then)
-                    self.generate_expr(ctx, g, expthen, keep=True)
-                    g.def_label(lbl_end)
-                else:
-                    if expelse is None:
-                        lbl_end = self.next_label()
-                        g.emit('goto_if_not_true', lbl_end)
-                        self.generate_expr(ctx, g, expthen, keep=False)
-                        g.def_label(lbl_end)
-                    else:
-                        lbl_then = self.next_label()
-                        lbl_end = self.next_label()
-                        g.emit('goto_if_true', lbl_then)
-                        self.generate_expr(ctx, g, expelse, keep=False)
-                        g.emit('goto', lbl_end)
-                        g.def_label(lbl_then)
-                        self.generate_expr(ctx, g, expthen, keep=False)
-                        g.def_label(lbl_end)
+                self.generate_if_expr(ctx, g, expr.cdr, keep=keep)
                 
             else:
                 argc = 0
@@ -280,3 +240,49 @@ class Compiler(object):
         else:
             raise CompileError("Expecting atom or list, but got %s" % expr)
 
+    def generate_if_expr(self, ctx, g, expr, keep=True):
+        if expr is None:
+            raise SyntaxError("Missing condition expression in 'if'")
+            
+        cond = expr.car
+        expthen = expr.cdr
+        if expthen is None:
+            raise SyntaxError("Missing 'then' expression in 'if'")
+        expthen = expthen.car
+                
+        expelse = expr.cdr.cdr
+        if expelse is not None:
+            if expelse.cdr is not None:
+                raise SyntaxError("Extra expression in 'if'")
+            expelse = expelse.car
+
+            self.generate_expr(ctx, g, cond, keep=True)
+                
+            if keep is True:
+                lbl_then = self.next_label()
+                lbl_end = self.next_label()
+                g.emit('goto_if_true', lbl_then)
+                if expelse is None:
+                    g.emit('push_nil')
+                else:
+                    self.generate_expr(ctx, g, expelse, keep=True)
+                g.emit('goto', lbl_end)
+                g.def_label(lbl_then)
+                self.generate_expr(ctx, g, expthen, keep=True)
+                g.def_label(lbl_end)
+            else:
+                if expelse is None:
+                    lbl_end = self.next_label()
+                    g.emit('goto_if_not_true', lbl_end)
+                    self.generate_expr(ctx, g, expthen, keep=False)
+                    g.def_label(lbl_end)
+                else:
+                    lbl_then = self.next_label()
+                    lbl_end = self.next_label()
+                    g.emit('goto_if_true', lbl_then)
+                    self.generate_expr(ctx, g, expelse, keep=False)
+                    g.emit('goto', lbl_end)
+                    g.def_label(lbl_then)
+                    self.generate_expr(ctx, g, expthen, keep=False)
+                    g.def_label(lbl_end)
+                    
