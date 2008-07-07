@@ -160,7 +160,7 @@ class Compiler(object):
     sym_if = sym("if")
     
     def __init__(self):
-        pass
+        self.label_seed = 0
 
     def compile(self, lst, ctx):
         g = Generator(parent=ctx)
@@ -194,6 +194,10 @@ class Compiler(object):
 
         g.emit("ret")
 
+    def next_label(self):
+        self.label_seed += 1
+        return "__lbl_%d" % self.label_seed
+
     def generate_expr(self, ctx, g, expr, keep=True):
         """\
         Generate instructions for an expression.
@@ -205,7 +209,7 @@ class Compiler(object):
             if keep:
                 g.emit_local("push", expr.name)
 
-        elif type(expr) in [unicode, str, float, int, long, NoneType]:
+        elif type(expr) in [unicode, str, float, int, long, NoneType, bool]:
             if keep:
                 g.emit("push_literal", expr)
 
@@ -218,6 +222,7 @@ class Compiler(object):
                 if keep:
                     g.emit("dup")
                 g.emit_local("set", name.name)
+
             elif expr.car == Compiler.sym_if:
                 expr = expr.cdr
                 cond = expr.car
@@ -227,13 +232,40 @@ class Compiler(object):
                 expthen = expthen.car
                 
                 expelse = expr.cdr.cdr
-                if expelse.cdr is not None:
-                    raise SyntaxError("Extra expression in 'if'")
-                
                 if expelse is not None:
+                    if expelse.cdr is not None:
+                        raise SyntaxError("Extra expression in 'if'")
                     expelse = expelse.car
 
+                self.generate_expr(ctx, g, cond, keep=True)
                 
+                if keep is True:
+                    lbl_then = self.next_label()
+                    lbl_end = self.next_label()
+                    g.emit('goto_if_true', lbl_then)
+                    if expelse is None:
+                        g.emit('push_nil')
+                    else:
+                        self.generate_expr(ctx, g, expelse, keep=True)
+                    g.emit('goto', lbl_end)
+                    g.def_label(lbl_then)
+                    self.generate_expr(ctx, g, expthen, keep=True)
+                    g.def_label(lbl_end)
+                else:
+                    if expelse is None:
+                        lbl_end = self.next_label()
+                        g.emit('goto_if_not_true', lbl_end)
+                        self.generate_expr(ctx, g, expthen, keep=False)
+                        g.def_label(lbl_end)
+                    else:
+                        lbl_then = self.next_label()
+                        lbl_end = self.next_label()
+                        g.emit('goto_if_true', lbl_then)
+                        self.generate_expr(ctx, g, expelse, keep=False)
+                        g.emit('goto', lbl_end)
+                        g.def_label(lbl_then)
+                        self.generate_expr(ctx, g, expthen, keep=False)
+                        g.def_label(lbl_end)
                 
             else:
                 argc = 0
