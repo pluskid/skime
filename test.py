@@ -76,9 +76,10 @@ if __name__ == '__main__':
 #              [sym("*"), 2, 3, 4, [sym("+"), 1, 2, 3]],
 #              100]]
     sexp = [sym("begin"),
+            [sym("define"), sym("x"), 10],
             [[sym("lambda"),
               [sym("a"), sym("b")],
-              [sym("+"), sym("a"), sym("b")]],
+              [sym("+"), sym("a"), sym("b"), sym("x")]],
              1, 2]]
     sexp = list2cons(sexp)
     script = compiler.compile(sexp, vm.ctx)

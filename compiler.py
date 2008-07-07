@@ -208,20 +208,14 @@ class Compiler(object):
                 g.emit("push_literal", expr)
 
         elif type(expr) is cons:
-            if expr.car == Compiler.sym_define:
-                name = expr.cdr.car
-                g.def_local(name.name)
-                value = expr.cdr.cdr.car
-                self.generate_expr(g, expr, keep=True)
-                if keep:
-                    g.emit("dup")
-                g.emit_local("set", name.name)
-
-            elif expr.car == Compiler.sym_if:
+            if expr.car == Compiler.sym_if:
                 self.generate_if_expr(g, expr.cdr, keep=keep)
 
             elif expr.car == Compiler.sym_lambda:
                 self.generate_lambda(g, expr.cdr, keep=keep)
+
+            elif expr.car == Compiler.sym_define:
+                self.generate_define(g, expr.cdr, keep=keep)
                 
             else:
                 argc = 0
@@ -309,4 +303,23 @@ class Compiler(object):
 
         except AttributeError:
             raise SyntaxError("Broken lambda expression")
+        
+    def generate_define(self, g, expr, keep=True):
+        if expr is None:
+            raise SyntaxError("Empty define expression")
+        var = expr.car
+        val = expr.cdr
+        if type(var) is not sym:
+            raise SyntaxError("The variable to define should be a symbol")
+        if val is None:
+            raise SyntaxError("Missing value for defined variable")
+        if val.cdr is not None:
+            raise SyntaxError("Extra expressions in 'define'")
+        val = val.car
+
+        self.generate_expr(g, val, keep=True)
+        if keep is True:
+            g.emit("dup")
+        g.def_local(var.name)
+        g.emit_local('set', var.name)
         
