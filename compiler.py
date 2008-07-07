@@ -73,8 +73,40 @@ class Generator(object):
         
         return g
 
+    def emit_local(self, action, name):
+        """\
+        Emit an instruction to push or set local variable. The local variable
+        is automatically searched in the current context and parents.
+        """
+        depth, idx = self.find_local_depth(name)
+        if depth < 0:
+            raise UnboundVariable(name, "Unbound variable %s" % name)
+        if depth == 0:
+            postfix = ''
+            args = (idx,)
+        else:
+            postfix = '_depth'
+            args = (depth, idx)
+        self.emit('%s_local%s' % (action, postfix), *args)
+
     def find_local(self, name):
+        "Find index of a local variable in the current context."
         return self.locals.index(name)
+
+    def find_local_depth(self, name):
+        """\
+        Find depth and index of a local variable. Recursively find in parents.
+        Return a depth of -1 when not found.
+        """
+        depth = 0
+        ctx = self
+        while ctx is not None:
+            try:
+                return (depth, ctx.find_local(name))
+            except ValueError:
+                depth += 1
+                ctx = ctx.parent
+        return (-1, 0)
     
     def generate(self):
         "Generate a Procedure based on the knowledge collected."
@@ -99,8 +131,8 @@ class Generator(object):
                     idx = len(self.literals)
                     self.literals.append(args[0])
                     bc.append(idx)
-                elif insn_name in ['push_local', 'set_local']:
-                    bc.append(self.find_local(args[0]))
+#                 elif insn_name in ['push_local', 'set_local']:
+#                     bc.append(self.find_local(args[0]))
 #                 elif insn_name in ['push_local_depth', 'set_local_depth']:
 #                     bc.append(args[0])
 #                     p = self
@@ -129,21 +161,16 @@ class Compiler(object):
         pass
 
     def compile(self, lst, ctx):
+        g = Generator(parent=ctx)
+        
         if type(lst) is sym:
-            depth, idx = lookup_variable(ctx, lst.name)
-            if depth < 0:
-                raise UnboundVariable(lst.name, "Unbound variable %s" % lst.name)
-
-            g = Generator(parent=ctx)
-            g.emit("push_local_depth", depth+1, idx)
+            g.emit_local("push", lst.name)
             g.emit("ret")
         elif type(lst) in [unicode, str, float, int, long, NoneType]:
-            g = Generator(parent=ctx)
             g.emit("push_literal", lst)
             g.emit("ret")
         elif type(lst) is cons:
             if lst.car == Compiler.sym_begin:
-                g = Generator(parent=ctx)
                 self.generate_body(ctx, g, lst.cdr)
         else:
             raise CompileError("Cannot compile %s" % lst)
@@ -153,17 +180,6 @@ class Compiler(object):
     ########################################
     # Helper functions
     ########################################
-    def lookup_variable(self, ctx, name):
-        "Lookup variables in lexical scope"
-        depth = 0
-        while ctx is not None:
-            try:
-                return (depth, ctx.find_local(name))
-            except ValueError:
-                depth += 1
-                ctx = ctx.parent
-        return (-1, 0)
-        
     def generate_body(self, ctx, g, body):
         "Generate scope body."
         if body is None:
@@ -185,13 +201,7 @@ class Compiler(object):
         """
         if type(expr) is sym:
             if keep:
-                depth, idx = self.lookup_variable(g, expr.name)
-                if depth < 0:
-                    raise UnboundVariable(expr.name, "Unbound variable %s" % expr.name)
-                if depth == 0:
-                    g.emit("push_local", idx)
-                else:
-                    g.emit("push_local_depth", depth, idx)
+                g.emit_local("push", expr.name)
 
         elif type(expr) in [unicode, str, float, int, long, NoneType]:
             if keep:
@@ -205,7 +215,7 @@ class Compiler(object):
                 self.generate_expr(ctx, g, expr, keep=True)
                 if keep:
                     g.emit("dup")
-                g.emit("set_local", name.name)
+                g.emit_local("set", name.name)
             else:
                 argc = 0
                 arg  = expr.cdr
