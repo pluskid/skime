@@ -12,6 +12,7 @@ from proc import Procedure
 
 from errors import UnboundVariable
 from errors import CompileError
+from errors import SyntaxError
 
 class Generator(object):
     """\
@@ -156,6 +157,7 @@ class Generator(object):
 class Compiler(object):
     sym_begin = sym("begin")
     sym_define = sym("define")
+    sym_if = sym("if")
     
     def __init__(self):
         pass
@@ -216,6 +218,23 @@ class Compiler(object):
                 if keep:
                     g.emit("dup")
                 g.emit_local("set", name.name)
+            elif expr.car == Compiler.sym_if:
+                expr = expr.cdr
+                cond = expr.car
+                expthen = expr.cdr
+                if expthen is None:
+                    raise SyntaxError("Missing 'then' expression in 'if'")
+                expthen = expthen.car
+                
+                expelse = expr.cdr.cdr
+                if expelse.cdr is not None:
+                    raise SyntaxError("Extra expression in 'if'")
+                
+                if expelse is not None:
+                    expelse = expelse.car
+
+                
+                
             else:
                 argc = 0
                 arg  = expr.cdr

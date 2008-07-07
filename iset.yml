@@ -181,50 +181,6 @@ instructions:
       ctx.push(ctx.top())
 
   -
-    name: plus
-    tags: []
-    desc: Performan arithmetic +
-    operands: []
-    stack_before: [a, b]
-    stack_after: [b+a]
-    code: |
-      res = ctx.pop() + ctx.pop()
-      ctx.push(res)
-
-  -
-    name: minus
-    tags: []
-    desc: Performan arithmetic -
-    operands: []
-    stack_before: [a, b]
-    stack_after: [b-a]
-    code: |
-      res = ctx.pop() - ctx.pop()
-      ctx.push(res)
-
-  -
-    name: multiply
-    tags: []
-    desc: Performan arithmetic *
-    operands: []
-    stack_before: [a, b]
-    stack_after: [b*a]
-    code: |
-      res = ctx.pop() * ctx.pop()
-      ctx.push(res)
-
-  -
-    name: divide
-    tags: []
-    desc: Performance arithmetic /
-    operands: []
-    stack_before: [a, b]
-    stack_after: [b/a]
-    code: |
-      res = ctx.pop() / ctx.pop()
-      ctx.push(res)
-
-  -
     name: test_equal
     tags: []
     desc: Test equality.

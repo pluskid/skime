@@ -12,3 +12,5 @@ class UnboundVariable(CompileError):
 class WrongArgNumber(CompileError):
     pass
 
+class SyntaxError(CompileError):
+    pass
