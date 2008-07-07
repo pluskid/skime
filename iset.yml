@@ -47,9 +47,7 @@ instructions:
       proc = ctx.pop()
 
       if isinstance(proc, Procedure):
-          if proc.argc != argc:
-              raise WrongArgNumber("Expecting %d arguments, but got %d" % (proc.argc, argc))
-
+          proc.check_arity(argc)
           nctx = Context(ctx.vm, proc)
           while argc > 0:
               nctx.locals[argc-1] = ctx.pop()
@@ -65,6 +63,9 @@ instructions:
               argc -= 1
           args.reverse()
           ctx.push(proc.call(*args))
+
+      else:
+          raise MiscError("Not a skime callable: %s" % proc)
 
       ctx.ip += $(insn_len)
 
@@ -179,17 +180,6 @@ instructions:
     stack_after: [value]
     code: |
       ctx.push(ctx.top())
-
-  -
-    name: test_equal
-    tags: []
-    desc: Test equality.
-    operands: []
-    stack_before: [a, b]
-    stack_after: [b==a]
-    code: |
-      res = (ctx.pop() == ctx.pop())
-      ctx.push(res)
 
   -
     name: goto

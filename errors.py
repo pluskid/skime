@@ -14,3 +14,7 @@ class WrongArgNumber(CompileError):
 
 class SyntaxError(CompileError):
     pass
+
+
+class MiscError(Error):
+    pass
