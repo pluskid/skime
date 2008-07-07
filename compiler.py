@@ -42,10 +42,6 @@ class Generator(object):
             raise TypeError, \
                   "Instruction %s expects %d parameters, but %d given" % \
                   (insn_name, insn.length-1, len(args))
-        self._emit(insn_name, *args)
-
-    def _emit(self, insn_name, *args):
-        "Emit an instruction without validation. Internal use only."
         self.stream.append((insn_name, args))
         self.ip += len(args)+1
 
@@ -54,20 +50,12 @@ class Generator(object):
         for loc in locals:
             if loc in self.locals:
                 raise TypeError, "Duplicated local variable: %s" % loc
-        self._def_local(*locals)
-    
-    def _def_local(self, *locals):
-        "Define local without validation. Internal use only."
         self.locals += locals
 
     def def_label(self, name):
         "Define a label at current ip."
         if self.labels.get(name) is not None:
             raise TypeError, "Duplicated label: %s" % name
-        self._def_label(name)
-
-    def _def_label(self, name):
-        "Define a label at current ip without validation. Internal use only."
         self.labels[name] = self.ip
 
     def push_proc(self, args=[]):
