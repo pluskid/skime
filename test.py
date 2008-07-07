@@ -72,7 +72,7 @@ if __name__ == '__main__':
     vm = VM()
     compiler = Compiler()
     sexp = [sym("begin"),
-            [sym("if"), False,
+            [sym("if"), [sym('='), [sym('+'), 2, 3], 5, [sym('/'), 10, 2]],
              [sym("*"), 2, 3, 4, [sym("+"), 1, 2, 3]],
              100]]
     sexp = list2cons(sexp)

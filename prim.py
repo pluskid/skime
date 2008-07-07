@@ -49,6 +49,7 @@ def load_primitives(ctx):
     ctx.add_local('-', PyPrimitive(minus, (1, -1)))
     ctx.add_local('*', PyPrimitive(mul, (-1, -1)))
     ctx.add_local('/', PyPrimitive(div, (1, -1)))
+    ctx.add_local('=', PyPrimitive(equal, (2, -1)))
 
 
 def plus(*args):
@@ -70,4 +71,10 @@ def div(num, *args):
     for x in args:
         num /= x
     return num
-
+def equal(a, b, *args):
+    if a != b:
+        return False
+    for x in args:
+        if x != a:
+            return False
+    return True
