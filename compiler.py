@@ -317,9 +317,11 @@ class Compiler(object):
             raise SyntaxError("Extra expressions in 'define'")
         val = val.car
 
+        # first define local, then generate value. This allow
+        # recursive function to be compiled properly.
+        g.def_local(var.name)
         self.generate_expr(g, val, keep=True)
         if keep is True:
             g.emit("dup")
-        g.def_local(var.name)
         g.emit_local('set', var.name)
         

@@ -75,12 +75,20 @@ if __name__ == '__main__':
 #             [sym("if"), [sym('='), [sym('+'), 2, 3], 5, [sym('/'), 10, 2]],
 #              [sym("*"), 2, 3, 4, [sym("+"), 1, 2, 3]],
 #              100]]
+#     sexp = [sym("begin"),
+#             [sym("define"), sym("x"), 10],
+#             [[sym("lambda"),
+#               [sym("a"), sym("b")],
+#               [sym("+"), sym("a"), sym("b"), sym("x")]],
+#              1, 2]]
+
     sexp = [sym("begin"),
-            [sym("define"), sym("x"), 10],
-            [[sym("lambda"),
-              [sym("a"), sym("b")],
-              [sym("+"), sym("a"), sym("b"), sym("x")]],
-             1, 2]]
+            [sym("define"), sym("fact"),
+             [sym("lambda"), [sym("n")],
+              [sym("if"), [sym("="), sym("n"), 0],
+               1, [sym("*"), sym("n"),
+                   [sym("fact"), [sym("-"), sym("n"), 1]]]]]],
+            [sym("fact"), 5]]
     sexp = list2cons(sexp)
     script = compiler.compile(sexp, vm.ctx)
 
