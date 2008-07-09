@@ -49,7 +49,7 @@ class Generator(object):
             raise TypeError, "No such instruction: %s" % insn_name
         if insn.length != 1+len(args):
             raise TypeError, \
-                  "Instruction %s expects %d parameters, but %d given" % \
+                  "INSTRUCTION %s expects %d parameters, but %d given" % \
                   (insn_name, insn.length-1, len(args))
         self.stream.append((insn_name, args))
         self.ip += len(args)+1
@@ -142,7 +142,8 @@ class Generator(object):
                     for x in args:
                         bc.append(x)
 
-        proc = Procedure(self.argc, self.fixed_argc, self.locals[:], self.literals[:], bc)
+        proc = Procedure(self.argc, self.fixed_argc,
+                         self.locals[:], self.literals[:], bc)
 
         return proc
 
@@ -171,7 +172,9 @@ class Compiler(object):
         else:
             raise CompileError("Cannot compile %s" % lst)
 
-        return g.generate()
+        proc = g.generate()
+        proc.lexical_parent = ctx
+        return proc
 
     ########################################
     # Helper functions

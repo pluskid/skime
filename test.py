@@ -134,7 +134,7 @@ if __name__ == '__main__':
 
     sexp = Parser(code).parse()
     script = compiler.compile(sexp, vm.ctx)
-    script.lexical_parent = vm.ctx
+#    script.lexical_parent = vm.ctx
     vm.run(script)
 
     print vm.ctx.pop()
