@@ -107,23 +107,34 @@ if __name__ == '__main__':
 #               [sym("+"), sym("a"), sym("b"), sym("x")]],
 #              1, 2]]
 
-    sexp = [sym("begin"),
-            [sym("define"), sym("fact"),
-             [sym("lambda"), [sym("n")],
-              [sym("if"), [sym("="), sym("n"), 0],
-               1, [sym("*"), sym("n"),
-                   [sym("fact"), [sym("-"), sym("n"), 1]]]]]],
-            [sym("fact"), 5]]
-    sexp = list2cons(sexp)
-    script = compiler.compile(sexp, vm.ctx)
+#     sexp = [sym("begin"),
+#             [sym("define"), sym("fact"),
+#              [sym("lambda"), [sym("n")],
+#               [sym("if"), [sym("="), sym("n"), 0],
+#                1, [sym("*"), sym("n"),
+#                    [sym("fact"), [sym("-"), sym("n"), 1]]]]]],
+#             [sym("fact"), 5]]
+#     sexp = list2cons(sexp)
+#     script = compiler.compile(sexp, vm.ctx)
 
+#     script.lexical_parent = vm.ctx
+#     vm.run(script)
+    
+#     print vm.ctx.pop()
+
+
+    code = """
+    (begin
+      (define fact (lambda (n)
+                     (if (= n 0)
+                       1
+                       (* n (fact (- n 1))))))
+      (fact 5))
+    """
+
+    sexp = Parser(code).parse()
+    script = compiler.compile(sexp, vm.ctx)
     script.lexical_parent = vm.ctx
     vm.run(script)
-    
+
     print vm.ctx.pop()
-
-
-    code = '(+ a (/ 2 1 "foo" 34))'
-    sexp = Parser(code).parse()
-    pp_sexp(sexp)
-    print

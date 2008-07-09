@@ -69,7 +69,8 @@ class Parser(object):
         pos1 = self.pos
         self.pos += 1
         while self.pos < len(self.text) and \
-              not self.text[self.pos].isspace():
+              not self.text[self.pos].isspace() and \
+              not self.text[self.pos] in ['\'', ')', '(', ',', '@', '.']:
             self.pos += 1
         pos2 = self.pos
         return sym(self.text[pos1:pos2])
