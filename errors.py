@@ -15,6 +15,8 @@ class WrongArgNumber(CompileError):
 class SyntaxError(CompileError):
     pass
 
+class ParseError(CompileError):
+    pass
 
 class MiscError(Error):
     pass

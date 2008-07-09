@@ -1,3 +1,4 @@
+from sys import stdout
 from vm import VM
 from ctx import Context
 from proc import Procedure
@@ -5,6 +6,7 @@ from codec import encode
 from symbol import Symbol as sym
 from cons import Cons as cons
 from compiler import Generator, Compiler
+from parser import Parser
 
 def list2cons(lst):
     if type(lst) is not list:
@@ -13,6 +15,29 @@ def list2cons(lst):
     for x in reversed(lst):
         c = cons(list2cons(x), c)
     return c
+
+def pp_sexp(sexp):
+    if type(sexp) is sym:
+        stdout.write(sexp.name)
+    elif type(sexp) in [int, long, float]:
+        stdout.write(str(sexp))
+    elif type(sexp) in [str, unicode]:
+        stdout.write(sexp.__repr__())
+    elif sexp is None:
+        pass
+    elif type(sexp) is cons:
+        stdout.write('(')
+        pp_sexp(sexp.car)
+        cdr = sexp.cdr
+        while type(cdr) is cons:
+            stdout.write(' ')
+            pp_sexp(cdr.car)
+            cdr = cdr.cdr
+        if cdr is None:
+            stdout.write(')')
+        else:
+            pp_sexp(cdr)
+            stdout.write(')')
 
 if __name__ == '__main__':
 #     vm = VM()
@@ -96,3 +121,9 @@ if __name__ == '__main__':
     vm.run(script)
     
     print vm.ctx.pop()
+
+
+    code = '(+ a (/ 2 1 "foo" 34))'
+    sexp = Parser(code).parse()
+    pp_sexp(sexp)
+    print
