@@ -24,59 +24,71 @@ class Parser(object):
         self.skip_all()
         
         ch = self.text[self.pos]
-            
-        if ch.isdigit() or \
-           (ch == '#' and self.text[self.pos+1] != '('):
+
+        if ch.isdigit():
             return self.parse_number()
+        if ch == '#':
+            if self.text[self.pos+1] == 't':
+                return True
+            if self.text[self.pos+1] == 'f':
+                return False
+            if self.text[self.pos+1] == '(':
+                return self.parse_vector()
         if ch == '(':
             return self.parse_list()
         if ch == '\'':
             return self.parse_quote()
+        if ch in ['+', '-'] and \
+           self.pos < len(self.text) and \
+           self.text[self.pos].isdigit():
+            return self.parse_number()
         return self.parse_symbol()
 
 
     def parse_number(self):
-        exactness = None
-        radix = 10
-        if self.text[self.pos] == '#':
-            exactness, radix = self.parse_number_prefix(self)
-        num1 = self.parse_number_real(radix)
-        return num1
-    
-    def parse_number_prefix(self):
-        "Parse number prefix"
-        exactness = None
-        radix = 10
-        while self.eat('#'):
-            ch = self.text[self.pos]
-            if ch == 'i':
-                exactness = False
-            elif ch == 'e':
-                exactness = True
-            elif ch == 'b':
-                radix = 2
-            elif ch == 'o':
-                radix = 8
-            elif ch == 'd':
-                radix = 10
-            elif ch == 'x':
-                radix = 16
-            else:
-                report_error("Bad number format, unknown radix: %s" % ch)
-            self.pos += 1
-        return exactness, radix
-
-    def parse_number_real(self, radix):
-        "Parse a real number."
-        negative = False
+        sign1 = 1
         if self.eat('-'):
-            negative = True
+            sign1 = -1
         self.eat('+')
 
+        num1 = self.parse_unum()
+        if self.eat('/'):
+            num2 = self.parse_unum()
+            if num2 is None:
+                report_error("Invalid number format, expecting denominator")
+            num1 = float(num1)/num2
+        if self.text[self.pos] in ['+', '-']:
+            sign2 = 1
+            if self.eat('-'):
+                sign2 = -1
+            self.eat('+')
+            num2 = self.parse_unum()
+            if num2 is None:
+                num2 = 1
+            if not self.eat('i'):
+                report_error("Invalid number format, expecting 'i' for complex")
+            num1 = num1 + sign2*num2*1j
+
+        return sign1*num1
+
+    def parse_unum(self):
+        "Parse an unsigned number."
+        isfloat = False
         pos1 = self.pos
         while self.text[self.pos].isdigit():
             self.pos += 1
-        return int(self.text[pos1:self.pos])
+        if self.eat('.'):
+            isfloat = True
+        while self.text[self.pos].isdigit():
+            self.pos += 1
+        pos2 = self.pos
+        if pos2 == pos1:
+            return None
+        if isfloat:
+            return float(self.text[pos1:pos2])
+        else:
+            return int(self.text[pos1:pos2])
+
 
     def parse_list(self):
         self.eat('(')
@@ -113,6 +125,9 @@ class Parser(object):
             self.pos += 1
         pos2 = self.pos
         return sym(self.text[pos1:pos2])
+
+    def parse_vector(self):
+        pass
 
     def skip_all(self):
         "Skip all non-relevant characters."
