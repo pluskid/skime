@@ -98,13 +98,12 @@ class Compiler(object):
         if expthen is None:
             raise SyntaxError("Missing 'then' expression in 'if'")
         expthen = expthen.car
-                
+
         expelse = expr.cdr.cdr
         if expelse is not None:
             if expelse.cdr is not None:
                 raise SyntaxError("Extra expression in 'if'")
-
-        expelse = expelse.car
+            expelse = expelse.car
 
         self.generate_expr(g, cond, keep=True)
             
