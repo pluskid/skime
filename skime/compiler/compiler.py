@@ -57,6 +57,13 @@ class Compiler(object):
         if keep == True, the value of the expression is kept on
         the stack, otherwise, it is popped or never pushed.
         """
+        mapping = {
+            Compiler.sym_if: self.generate_if_expr,
+            Compiler.sym_begin: self.generate_begin_expr,
+            Compiler.sym_lambda: self.generate_lambda,
+            Compiler.sym_define: self.generate_define
+            }
+        
         if type(expr) is sym:
             if keep:
                 g.emit_local("push", expr.name)
@@ -66,18 +73,9 @@ class Compiler(object):
                 g.emit("push_literal", expr)
 
         elif type(expr) is cons:
-            if expr.car == Compiler.sym_begin:
-                self.generate_begin_expr(g, expr.cdr, keep=keep)
-                
-            elif expr.car == Compiler.sym_if:
-                self.generate_if_expr(g, expr.cdr, keep=keep)
-
-            elif expr.car == Compiler.sym_lambda:
-                self.generate_lambda(g, expr.cdr, keep=keep)
-
-            elif expr.car == Compiler.sym_define:
-                self.generate_define(g, expr.cdr, keep=keep)
-                
+            routine = mapping.get(expr.car)
+            if routine is not None:
+                routine(g, expr.cdr, keep=keep)
             else:
                 argc = 0
                 arg  = expr.cdr
