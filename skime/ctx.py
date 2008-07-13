@@ -1,4 +1,4 @@
-from prim import load_primitives
+from .prim import load_primitives
 
 class Context(object):
     def __init__(self, vm, proc):

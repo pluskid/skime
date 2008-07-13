@@ -1,6 +1,6 @@
-from symbol import Symbol as sym
-from cons import Cons as cons
-from errors import WrongArgNumber
+from .types.symbol import Symbol as sym
+from .types.cons   import Cons as cons
+from .errors       import WrongArgNumber
 
 class Primitive(object):
     "Base class for all skime primitives"

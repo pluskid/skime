@@ -1,5 +1,5 @@
-from symbol import Symbol as sym
-from cons import Cons as cons
+from .types.symbol import Symbol as sym
+from .types.cons   import Cons as cons
 
 from errors import ParseError
 

@@ -1,5 +1,5 @@
-from ctx import TopLevelContext, Context
-import insns
+from .ctx import TopLevelContext, Context
+from . import insns
 
 class VM(object):
 

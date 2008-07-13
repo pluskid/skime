@@ -1,4 +1,4 @@
-from errors import WrongArgNumber
+from .errors import WrongArgNumber
 
 class Procedure(object):
     def __init__(self, argc, fixed_argc, locals, literals, bytecode):

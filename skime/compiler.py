@@ -2,17 +2,17 @@
 The compiler for skime. It compiles sexp to bytecode.
 """
 
-from array import array
-from types import NoneType
+from array         import array
+from types         import NoneType
 
-from symbol import Symbol as sym
-from cons import Cons as cons
-from iset import INSN_MAP
-from proc import Procedure
+from .types.symbol import Symbol as sym
+from .types.cons   import Cons as cons
+from .iset         import INSN_MAP
+from .proc         import Procedure
 
-from errors import UnboundVariable
-from errors import CompileError
-from errors import SyntaxError
+from .errors       import UnboundVariable
+from .errors       import CompileError
+from .errors       import SyntaxError
 
 class Generator(object):
     """\
