@@ -1,5 +1,6 @@
 from skime.parser import parse as p
 from skime.errors import ParseError
+from skime.types.symbol import Symbol as sym
 
 from nose.tools import assert_almost_equal
 from nose.tools import assert_raises
@@ -39,6 +40,14 @@ class TestString(object):
         assert p(r'""') == ''
         assert p(r'"tab\t"') == 'tab\t'
         assert p(r'"newline\n"') == 'newline\n'
+
+class TestSymbol(object):
+    def test_symbol(self):
+        assert p('foo') == sym('foo')
+        assert p('foo123') == sym('foo123')
+        assert p('string->number') == sym('string->number')
+        assert p('number?') == sym('number?')
+        assert_raises(ParseError, p, 'symbol-with.dot')
 
 class TestComment(object):
     def test_comment(self):
