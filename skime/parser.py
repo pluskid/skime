@@ -3,6 +3,10 @@ from cons import Cons as cons
 
 from errors import ParseError
 
+def parse(text, name="__unknown__"):
+    "Parse a piece of text."
+    return Parser(text, name).parse()
+
 class Parser(object):
     "A simple recursive descent parser for Scheme."
     sym_quote = sym("quote")
@@ -18,29 +22,28 @@ class Parser(object):
         try:
             return self.parse_expr()
         except IndexError:
-            report_error("Unexpected end of code")
+            self.report_error("Unexpected end of code")
 
     def parse_expr(self):
         self.skip_all()
         
-        ch = self.text[self.pos]
+        ch = self.peak()
 
-        if ch.isdigit():
+        if self.isdigit(ch):
             return self.parse_number()
         if ch == '#':
-            if self.text[self.pos+1] == 't':
+            if self.peak(idx=1) == 't':
                 return True
-            if self.text[self.pos+1] == 'f':
+            if self.peak(idx=1) == 'f':
                 return False
-            if self.text[self.pos+1] == '(':
+            if self.peak(idx=1) == '(':
                 return self.parse_vector()
         if ch == '(':
             return self.parse_list()
         if ch == '\'':
             return self.parse_quote()
         if ch in ['+', '-'] and \
-           self.pos < len(self.text) and \
-           self.text[self.pos].isdigit():
+           self.isdigit(self.peak(idx=1)):
             return self.parse_number()
         return self.parse_symbol()
 
@@ -55,9 +58,9 @@ class Parser(object):
         if self.eat('/'):
             num2 = self.parse_unum()
             if num2 is None:
-                report_error("Invalid number format, expecting denominator")
+                self.report_error("Invalid number format, expecting denominator")
             num1 = float(num1)/num2
-        if self.text[self.pos] in ['+', '-']:
+        if self.peak() in ['+', '-']:
             sign2 = 1
             if self.eat('-'):
                 sign2 = -1
@@ -66,7 +69,7 @@ class Parser(object):
             if num2 is None:
                 num2 = 1
             if not self.eat('i'):
-                report_error("Invalid number format, expecting 'i' for complex")
+                self.report_error("Invalid number format, expecting 'i' for complex")
             num1 = num1 + sign2*num2*1j
 
         return sign1*num1
@@ -75,12 +78,12 @@ class Parser(object):
         "Parse an unsigned number."
         isfloat = False
         pos1 = self.pos
-        while self.text[self.pos].isdigit():
-            self.pos += 1
+        while self.isdigit(self.peak()):
+            self.pop()
         if self.eat('.'):
             isfloat = True
-        while self.text[self.pos].isdigit():
-            self.pos += 1
+        while self.isdigit(self.peak()):
+            self.pop()
         pos2 = self.pos
         if pos2 == pos1:
             return None
@@ -93,7 +96,7 @@ class Parser(object):
     def parse_list(self):
         self.eat('(')
         elems = []
-        while self.pos < len(self.text):
+        while self.more():
             self.skip_all()
             if self.eat(')'):
                 elems.append(None)
@@ -118,11 +121,11 @@ class Parser(object):
 
     def parse_symbol(self):
         pos1 = self.pos
-        self.pos += 1
-        while self.pos < len(self.text) and \
-              not self.text[self.pos].isspace() and \
-              not self.text[self.pos] in ['\'', ')', '(', ',', '@', '.']:
-            self.pos += 1
+        self.pop()
+        while self.more() and \
+              not self.isspace(self.peak()) and \
+              not self.peak() in ['\'', ')', '(', ',', '@', '.']:
+            self.pop()
         pos2 = self.pos
         return sym(self.text[pos1:pos2])
 
@@ -137,32 +140,50 @@ class Parser(object):
 
     def skip_ws(self):
         "Skip whitespace."
-        while self.pos < len(self.text):
+        while self.more():
             if self.eat('\n'):
                 self.line += 1
-            elif self.text[self.pos].isspace():
-                self.pos += 1
+            elif self.isspace(self.peak()):
+                self.pop()
             else:
                 break
 
     def skip_comment(self):
         "Skip comment."
-        while self.pos < len(self.text) and \
-              self.eat(';'):
-            while self.pos < len(self.text) and \
-                  self.text[self.pos] != '\n':
-                self.pos += 1
-            if self.pos < len(self.text):
-                self.pos += 1
-                self.line += 1
-            else:
-                break
+        while self.eat(';'):
+            while self.more() and not self.eat('\n'):
+                self.pop()
+            self.line += 1
+
+    def pop(self, n=1):
+        "Increase self.pos by n."
+        self.pos += n
+
+    def more(self):
+        "Whether we have more content to parse."
+        return self.pos < len(self.text)
             
     def eat(self, char):
-        if self.text[self.pos] != char:
+        "Try to eat a character."
+        if self.peak() != char:
             return False
         self.pos += 1
         return True
+
+    def peak(self, idx=0):
+        "Get the character under self.pos + idx."
+        if self.pos + idx < len(self.text):
+            return self.text[self.pos + idx]
+        return None
+
+    def isdigit(self, ch):
+        "Test whether ch is a digit."
+        return ch is not None and ch.isdigit()
+
+    def isspace(self, ch):
+        "Test whether ch is whitespace."
+        return ch is not None and ch.isspace()
         
     def report_error(self, msg):
+        "Raise a ParserError with msg."
         raise ParseError("%s:%d %s" % (self.name, self.line, msg))
