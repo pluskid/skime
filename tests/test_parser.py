@@ -1,4 +1,4 @@
-from skime.parser import parse as p
+from skime.compiler.parser import parse as p
 from skime.errors import ParseError
 from skime.types.symbol import Symbol as sym
 from skime.types.cons import Cons as cons

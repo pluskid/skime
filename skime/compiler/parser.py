@@ -1,7 +1,7 @@
-from .types.symbol import Symbol as sym
-from .types.cons   import Cons as cons
+from ..types.symbol import Symbol as sym
+from ..types.cons   import Cons as cons
 
-from errors import ParseError
+from ..errors import ParseError
 
 def parse(text, name="__unknown__"):
     "Parse a piece of text."
