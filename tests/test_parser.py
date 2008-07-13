@@ -49,6 +49,11 @@ class TestSymbol(object):
         assert p('number?') == sym('number?')
         assert_raises(ParseError, p, 'symbol-with.dot')
 
+class TestBool(object):
+    def test_bool(self):
+        assert p('#t') == True
+        assert p('#f') == False
+
 class TestComment(object):
     def test_comment(self):
         assert p("; this is a comment\n5") == 5

@@ -35,8 +35,10 @@ class Parser(object):
             return self.parse_number()
         if ch == '#':
             if self.peak(idx=1) == 't':
+                self.pop(n=2)
                 return True
             if self.peak(idx=1) == 'f':
+                self.pop(n=2)
                 return False
             if self.peak(idx=1) == '(':
                 return self.parse_vector()
