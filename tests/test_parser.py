@@ -69,7 +69,37 @@ class TestCons(object):
         assert_raises(ParseError, p, '(')
         assert_raises(ParseError, p, '(1 . 2 3)')
         assert_raises(ParseError, p, '(1))')
-    
+
+
+class TestQuote(object):
+    def test_quote(self):
+        assert p("'1") == cons(sym('quote'), cons(1, None))
+        assert p("''1") == cons(sym('quote'),
+                                cons(cons(sym('quote'),
+                                          cons(1, None)),
+                                     None))
+    def test_quasiquote(self):
+        assert p("`1") == cons(sym('quasiquote'), cons(1, None))
+        assert p("`,1") == cons(sym('quasiquote'),
+                                cons(cons(sym('unquote'),
+                                          cons(1, None)),
+                                     None))
+        assert p("`(1 ,(+ 1 5) ,@(list 1 2))") == \
+               cons(sym("quasiquote"),
+                    cons(cons(1,
+                              cons(cons(sym("unquote"),
+                                        cons(cons(sym("+"),
+                                                  cons(1,
+                                                       cons(5, None))),
+                                                None)),
+                                   cons(cons(sym("unquote-slicing"),
+                                             cons(cons(sym("list"),
+                                                       cons(1,
+                                                            cons(2, None))),
+                                                  None)),
+                                        None))),
+                         None))
+
 class TestComment(object):
     def test_comment(self):
         assert p("; this is a comment\n5") == 5

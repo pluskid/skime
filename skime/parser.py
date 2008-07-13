@@ -10,6 +10,9 @@ def parse(text, name="__unknown__"):
 class Parser(object):
     "A simple recursive descent parser for Scheme."
     sym_quote = sym("quote")
+    sym_quasiquote = sym("quasiquote")
+    sym_unquote = sym("unquote")
+    sym_unquote_slicing = sym("unquote-slicing")
     
     def __init__(self, text, name="__unknown__"):
         self.text = text
@@ -44,8 +47,10 @@ class Parser(object):
                 return self.parse_vector()
         if ch == '(':
             return self.parse_list()
-        if ch == '\'':
+        if ch in ['\'', '`']:
             return self.parse_quote()
+        if ch == ',':
+            return self.parse_unquote()
         if ch in ['+', '-'] and \
            self.isdigit(self.peak(idx=1)):
             return self.parse_number()
@@ -122,8 +127,19 @@ class Parser(object):
         return car
 
     def parse_quote(self):
-        self.eat('\'')
-        return cons(Parser.sym_quote,
+        if self.peak() == '\'':
+            s = Parser.sym_quote
+        else:
+            s = Parser.sym_quasiquote
+        self.pop()
+        return cons(s, cons(self.parse_expr(), None))
+
+    def parse_unquote(self):
+        self.eat(',')
+        if self.eat('@'):
+            return cons(Parser.sym_unquote_slicing,
+                        cons(self.parse_expr(), None))
+        return cons(Parser.sym_unquote,
                     cons(self.parse_expr(), None))
 
     def parse_symbol(self):
