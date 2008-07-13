@@ -30,13 +30,7 @@ class Parser(object):
 
 
     def parse_expr(self):
-        self.skip_all()
-        
-        ch = self.peak()
-
-        if self.isdigit(ch):
-            return self.parse_number()
-        if ch == '#':
+        def parse_pound():
             if self.peak(idx=1) == 't':
                 self.pop(n=2)
                 return True
@@ -45,20 +39,35 @@ class Parser(object):
                 return False
             if self.peak(idx=1) == '(':
                 return self.parse_vector()
-        if ch == '(':
-            return self.parse_list()
-        if ch in ['\'', '`']:
-            return self.parse_quote()
-        if ch == ',':
-            return self.parse_unquote()
-        if ch in ['+', '-'] and \
-           self.isdigit(self.peak(idx=1)):
-            return self.parse_number()
-        if ch == '"':
-            return self.parse_string()
-        if ch is not None:
+        def parse_number_or_symbol():
+            if self.isdigit(self.peak(idx=1)):
+                return self.parse_number()
             return self.parse_symbol()
-        raise ParseError("Nothing to be parsed.")
+            
+        mapping = {
+            '#' : parse_pound,
+            '(' : self.parse_list,
+            "'" : self.parse_quote,
+            '`' : self.parse_quote,
+            ',' : self.parse_unquote,
+            '+' : parse_number_or_symbol,
+            '-' : parse_number_or_symbol,
+            '"' : self.parse_string
+            }
+
+        self.skip_all()
+
+        if not self.more():
+            raise ParseError("Nothing to be parsed.")
+        ch = self.peak()
+        routine = mapping.get(ch)
+        
+        if routine is not None:
+            return routine()
+        
+        if self.isdigit(ch):
+            return self.parse_number()
+        return self.parse_symbol()
 
 
     def parse_number(self):
