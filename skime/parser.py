@@ -47,8 +47,11 @@ class Parser(object):
         if ch in ['+', '-'] and \
            self.isdigit(self.peak(idx=1)):
             return self.parse_number()
+        if ch == '"':
+            return self.parse_string()
         if ch is not None:
             return self.parse_symbol()
+        raise ParseError("Nothing to be parsed.")
 
 
     def parse_number(self):
@@ -131,6 +134,38 @@ class Parser(object):
             self.pop()
         pos2 = self.pos
         return sym(self.text[pos1:pos2])
+
+    def parse_string(self):
+        mappings = {
+            '"':'"',
+            '\\':'\\',
+            'n':'\n',
+            't':'\t'
+            }
+            
+        self.eat('"')
+        strings = []
+        pos1 = self.pos
+        while self.more():
+            if self.peak() == '"':
+                break
+            if self.peak() == '\\':
+                self.pop()
+                ch = self.peak()
+                if ch in mappings:
+                    strings.append(self.text[pos1:self.pos-1])
+                    strings.append(mappings[ch])
+                    self.pop()
+                    pos1 = self.pos
+            else:
+                if self.peak() == '\n':
+                    self.line += 1
+                self.pop()
+        strings.append(self.text[pos1:self.pos])
+        if not self.eat('"'):
+            report_error("Expecting '\"' to end a string.")
+        return ''.join(strings)
+                
 
     def parse_vector(self):
         pass

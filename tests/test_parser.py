@@ -1,5 +1,8 @@
 from skime.parser import parse as p
+from skime.errors import ParseError
+
 from nose.tools import assert_almost_equal
+from nose.tools import assert_raises
 
 class TestNumber(object):
     def test_integer(self):
@@ -28,9 +31,23 @@ class TestNumber(object):
         assert p('6/3') == 2
         assert_almost_equal(p('1/3'), 1.0/3)
 
+class TestString(object):
+    def test_string(self):
+        assert p('"foo"') == "foo"
+        assert p(r'"foo\"bar"') == 'foo"bar'
+        assert p(r'"foo\"bar\""') == 'foo"bar"'
+        assert p(r'""') == ''
+        assert p(r'"tab\t"') == 'tab\t'
+        assert p(r'"newline\n"') == 'newline\n'
+
+class TestComment(object):
     def test_comment(self):
         assert p("; this is a comment\n5") == 5
         assert p("; this is a comment\n    5") == 5
         assert p("5; this is a comment") == 5
         assert p("5; this is a comment\n") == 5
 
+    def test_pure_comment(self):
+        assert_raises(ParseError, p, "; this is only comnent")
+        assert_raises(ParseError, p, "; this is only comnent\n")
+        assert_raises(ParseError, p, "\n\n  ; this is only comnent\n\n")
