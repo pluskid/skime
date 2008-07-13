@@ -1,6 +1,7 @@
 from skime.parser import parse as p
 from skime.errors import ParseError
 from skime.types.symbol import Symbol as sym
+from skime.types.cons import Cons as cons
 
 from nose.tools import assert_almost_equal
 from nose.tools import assert_raises
@@ -54,6 +55,21 @@ class TestBool(object):
         assert p('#t') == True
         assert p('#f') == False
 
+class TestCons(object):
+    def test_list(self):
+        assert p('(1 2 3)') == cons(1, cons(2, cons(3, None)))
+        assert p('(1)') == cons(1, None)
+        assert p('()') == None
+
+    def test_cons(self):
+        assert p('(1 . 2)') == cons(1, 2)
+        assert p('(1 2 . 3)') == cons(1, cons(2, 3))
+    
+    def test_fail(self):
+        assert_raises(ParseError, p, '(')
+        assert_raises(ParseError, p, '(1 . 2 3)')
+        assert_raises(ParseError, p, '(1))')
+    
 class TestComment(object):
     def test_comment(self):
         assert p("; this is a comment\n5") == 5

@@ -106,17 +106,16 @@ class Parser(object):
         elems = []
         while self.more():
             self.skip_all()
-            if self.eat(')'):
+            if self.peak() == ')':
                 elems.append(None)
                 break
             if self.eat('.'):
                 elems.append(self.parse_expr())
                 self.skip_all()
-                if not self.eat(')'):
-                    self.report_error("Expecting %s, but got %s" %
-                                      (')', self.text[self.pos]))
                 break
             elems.append(self.parse_expr())
+        if not self.eat(')'):
+            self.report_error("Expecting right paren ')'.")
         car = elems.pop()
         for x in reversed(elems):
             car = cons(x, car)
