@@ -19,10 +19,12 @@ class Parser(object):
 
     def parse(self):
         "Parse the text and return a sexp."
-        try:
-            return self.parse_expr()
-        except IndexError:
-            self.report_error("Unexpected end of code")
+        expr = self.parse_expr()
+        self.skip_all()
+        if self.more():
+            self.report_error("Expecting end of code, but more code is got")
+        return expr
+
 
     def parse_expr(self):
         self.skip_all()
@@ -45,7 +47,8 @@ class Parser(object):
         if ch in ['+', '-'] and \
            self.isdigit(self.peak(idx=1)):
             return self.parse_number()
-        return self.parse_symbol()
+        if ch is not None:
+            return self.parse_symbol()
 
 
     def parse_number(self):
@@ -134,9 +137,12 @@ class Parser(object):
 
     def skip_all(self):
         "Skip all non-relevant characters."
-        self.skip_ws()
-        self.skip_comment()
-        self.skip_ws()
+        while True:
+            self.skip_ws()
+            if self.peak() == ';':
+                self.skip_comment()
+            else:
+                break
 
     def skip_ws(self):
         "Skip whitespace."
