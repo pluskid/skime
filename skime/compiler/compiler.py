@@ -1,4 +1,3 @@
-from array          import array
 from types          import NoneType
                       
 from ..types.symbol import Symbol as sym
@@ -25,18 +24,8 @@ class Compiler(object):
 
     def compile(self, lst, ctx):
         g = Generator(parent=ctx)
-        
-        if type(lst) is sym:
-            g.emit_local("push", lst.name)
-            g.emit("ret")
-        elif type(lst) in [unicode, str, float, int, long, NoneType]:
-            g.emit("push_literal", lst)
-            g.emit("ret")
-        elif type(lst) is cons:
-            if lst.car == Compiler.sym_begin:
-                self.generate_body(g, lst.cdr)
-        else:
-            raise CompileError("Cannot compile %s" % lst)
+
+        self.generate_expr(g, lst, keep=True)
 
         proc = g.generate()
         proc.lexical_parent = ctx
@@ -77,7 +66,10 @@ class Compiler(object):
                 g.emit("push_literal", expr)
 
         elif type(expr) is cons:
-            if expr.car == Compiler.sym_if:
+            if expr.car == Compiler.sym_begin:
+                self.generate_begin_expr(g, expr.cdr, keep=keep)
+                
+            elif expr.car == Compiler.sym_if:
                 self.generate_if_expr(g, expr.cdr, keep=keep)
 
             elif expr.car == Compiler.sym_lambda:
@@ -113,38 +105,47 @@ class Compiler(object):
         if expelse is not None:
             if expelse.cdr is not None:
                 raise SyntaxError("Extra expression in 'if'")
-            expelse = expelse.car
 
-            self.generate_expr(g, cond, keep=True)
-                
-            if keep is True:
+        expelse = expelse.car
+
+        self.generate_expr(g, cond, keep=True)
+            
+        if keep is True:
+            lbl_then = self.next_label()
+            lbl_end = self.next_label()
+            g.emit('goto_if_true', lbl_then)
+            if expelse is None:
+                g.emit('push_nil')
+            else:
+                self.generate_expr(g, expelse, keep=True)
+            g.emit('goto', lbl_end)
+            g.def_label(lbl_then)
+            self.generate_expr(g, expthen, keep=True)
+            g.def_label(lbl_end)
+        else:
+            if expelse is None:
+                lbl_end = self.next_label()
+                g.emit('goto_if_not_true', lbl_end)
+                self.generate_expr(g, expthen, keep=False)
+                g.def_label(lbl_end)
+            else:
                 lbl_then = self.next_label()
                 lbl_end = self.next_label()
                 g.emit('goto_if_true', lbl_then)
-                if expelse is None:
-                    g.emit('push_nil')
-                else:
-                    self.generate_expr(g, expelse, keep=True)
+                self.generate_expr(g, expelse, keep=False)
                 g.emit('goto', lbl_end)
                 g.def_label(lbl_then)
-                self.generate_expr(g, expthen, keep=True)
+                self.generate_expr(g, expthen, keep=False)
                 g.def_label(lbl_end)
-            else:
-                if expelse is None:
-                    lbl_end = self.next_label()
-                    g.emit('goto_if_not_true', lbl_end)
-                    self.generate_expr(g, expthen, keep=False)
-                    g.def_label(lbl_end)
-                else:
-                    lbl_then = self.next_label()
-                    lbl_end = self.next_label()
-                    g.emit('goto_if_true', lbl_then)
-                    self.generate_expr(g, expelse, keep=False)
-                    g.emit('goto', lbl_end)
-                    g.def_label(lbl_then)
-                    self.generate_expr(g, expthen, keep=False)
-                    g.def_label(lbl_end)
-                    
+
+    def generate_begin_expr(self, g, body, keep=True):
+        "(begin ...) is transformed to ((lambda () ...))"
+        gsub = g.push_proc(args=[], rest_arg=False)
+        self.generate_body(gsub, body)
+        g.emit("call", 0)
+        if not keep:
+            g.emit("pop")
+
     def generate_lambda(self, base_generator, expr, keep=True):
         if keep is not True:
             return  # lambda expression has no side-effect

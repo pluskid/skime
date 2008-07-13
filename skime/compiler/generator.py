@@ -1,3 +1,5 @@
+from array  import array
+
 from ..iset import INSN_MAP
 from ..proc import Procedure
 

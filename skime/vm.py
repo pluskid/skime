@@ -9,3 +9,4 @@ class VM(object):
     def run(self, proc):
         self.ctx = Context(self, proc)
         insns.run(self)
+        return self.ctx.pop()
