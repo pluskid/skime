@@ -49,25 +49,40 @@ instructions:
       if isinstance(proc, Procedure):
           proc.check_arity(argc)
           nctx = Context(ctx.vm, proc)
-          while argc > 0:
-              nctx.locals[argc-1] = ctx.pop()
-              argc -= 1
+
+          for i in range(proc.fixed_argc):
+              nctx.locals[i] = ctx.top(idx=argc-i)
+          if proc.fixed_argc != proc.argc:
+              rest = None
+              for i in range(argc-proc.fixed_argc):
+                  rest = Cons(ctx.top(idx=i+1), rest)
+              nctx.locals[proc.fixed_argc] = rest
+          ctx.pop_n(argc)
     
           ctx.vm.ctx = nctx
 
       elif isinstance(proc, Primitive):
           proc.check_arity(argc)
-          args = []
-          while argc > 0:
-              args.append(ctx.pop())
-              argc -= 1
-          args.reverse()
+          args = range(argc)
+          for i in range(argc):
+              args[i] = ctx.top(idx=argc-i)
+          ctx.pop_n(argc)
           ctx.push(proc.call(*args))
 
       else:
           raise MiscError("Not a skime callable: %s" % proc)
 
       ctx.ip += $(insn_len)
+
+  -
+    name: pop
+    tags: []
+    desc: Pop the value off from the operand stack.
+    operands: []
+    stack_before: [value]
+    stack_after: []
+    code: |
+      ctx.pop()
 
   -
     name: push_local

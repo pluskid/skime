@@ -50,6 +50,9 @@ def load_primitives(ctx):
     ctx.add_local('*', PyPrimitive(mul, (-1, -1)))
     ctx.add_local('/', PyPrimitive(div, (1, -1)))
     ctx.add_local('=', PyPrimitive(equal, (2, -1)))
+    ctx.add_local('car', PyPrimitive(prim_car, (1, 1)))
+    ctx.add_local('cdr', PyPrimitive(prim_cdr, (1, 1)))
+    ctx.add_local('cons', PyPrimitive(prim_cons, (2, 2)))
 
 
 def plus(*args):
@@ -78,3 +81,10 @@ def equal(a, b, *args):
         if x != a:
             return False
     return True
+
+def prim_car(arg):
+    return arg.car
+def prim_cdr(arg):
+    return arg.cdr
+def prim_cons(a, b):
+    return cons(a, b)

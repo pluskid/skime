@@ -9,7 +9,7 @@ class Context(object):
         self.ip = 0
         self.bytecode = proc.bytecode
         self.stack = []
-        self.locals = map(lambda x: None, proc.locals)
+        self.locals = [None for x in proc.locals]
 
     def parent_get(self):
         return self.proc.lexical_parent
@@ -28,8 +28,10 @@ class Context(object):
         self.stack.append(val)
     def pop(self):
         return self.stack.pop()
-    def top(self):
-        return self.stack[-1]
+    def pop_n(self, n):
+        del self.stack[-n:]
+    def top(self, idx=1):
+        return self.stack[-idx]
 
 
 class TopLevelContext(Context):

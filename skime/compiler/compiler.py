@@ -3,7 +3,6 @@ from types          import NoneType
 from ..types.symbol import Symbol as sym
 from ..types.cons   import Cons as cons
                      
-from ..errors       import UnboundVariable
 from ..errors       import CompileError
 from ..errors       import SyntaxError
 
@@ -139,6 +138,7 @@ class Compiler(object):
         "(begin ...) is transformed to ((lambda () ...))"
         gsub = g.push_proc(args=[], rest_arg=False)
         self.generate_body(gsub, body)
+        g.emit("make_lambda")
         g.emit("call", 0)
         if not keep:
             g.emit("pop")

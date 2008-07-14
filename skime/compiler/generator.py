@@ -1,7 +1,9 @@
 from array  import array
 
-from ..iset import INSN_MAP
-from ..proc import Procedure
+from ..errors import UnboundVariable
+
+from ..iset   import INSN_MAP
+from ..proc   import Procedure
 
 class Generator(object):
     """\
