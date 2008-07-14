@@ -160,6 +160,9 @@ class Compiler(object):
                 else:
                     args.append(arglst.name)
                     rest_arg = True
+            elif arglst is None:
+                rest_arg = False
+                args = []
             else:
                 rest_arg = True
                 args = [arglst.name]
@@ -175,19 +178,26 @@ class Compiler(object):
         if expr is None:
             raise SyntaxError("Empty define expression")
         var = expr.car
-        val = expr.cdr
-        if type(var) is not sym:
-            raise SyntaxError("The variable to define should be a symbol")
-        if val is None:
-            raise SyntaxError("Missing value for defined variable")
-        if val.cdr is not None:
-            raise SyntaxError("Extra expressions in 'define'")
-        val = val.car
+        
+        if type(var) is cons:
+            gen = self.generate_lambda
+            val = cons(var.cdr, expr.cdr)
+            var = var.car
+        elif type(var) is sym:
+            gen = self.generate_expr
+            val = expr.cdr
+            if val is None:
+                raise SyntaxError("Missing value for defined variable")
+            if val.cdr is not None:
+                raise SyntaxError("Extra expressions in 'define'")
+            val = val.car
+        else:
+            raise SyntaxError("Invalid define expression")
 
         # first define local, then generate value. This allow
         # recursive function to be compiled properly.
         g.def_local(var.name)
-        self.generate_expr(g, val, keep=True)
+        gen(g, val, keep=True)
         if keep is True:
             g.emit("dup")
         g.emit_local('set', var.name)

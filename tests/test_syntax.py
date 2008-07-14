@@ -34,3 +34,17 @@ class TestSyntax(object):
         assert_raises(SyntaxError, self.eval, "(if #t)")
         assert_raises(SyntaxError, self.eval, "(if)")
         assert_raises(SyntaxError, self.eval, "(if #t 1 2 3)")
+
+    def test_lambda(self):
+        assert self.eval("((lambda (x) x) 5)") == 5
+        assert self.eval("((lambda (x) (+ x 1)) 5)") == 6
+        assert self.eval("((lambda () 5))") == 5
+
+    def test_define(self):
+        assert self.eval("(begin (define foo 5) foo)") == 5
+        assert_raises(SyntaxError, self.eval, "(define)")
+        assert_raises(SyntaxError, self.eval, "(define foo)")
+        assert_raises(SyntaxError, self.eval, "(define foo 5 6)")
+
+        assert self.eval("(begin (define (foo x) x) (foo 5))") == 5
+        assert self.eval("(begin (define (foo)) (foo))") == None
