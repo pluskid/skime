@@ -1,5 +1,6 @@
 from .types.symbol import Symbol as sym
 from .types.cons   import Cons as cons
+from .proc         import Procedure
 from .errors       import WrongArgNumber
 
 class Primitive(object):
@@ -50,9 +51,18 @@ def load_primitives(ctx):
     ctx.add_local('*', PyPrimitive(mul, (-1, -1)))
     ctx.add_local('/', PyPrimitive(div, (1, -1)))
     ctx.add_local('=', PyPrimitive(equal, (2, -1)))
+
     ctx.add_local('car', PyPrimitive(prim_car, (1, 1)))
     ctx.add_local('cdr', PyPrimitive(prim_cdr, (1, 1)))
     ctx.add_local('cons', PyPrimitive(prim_cons, (2, 2)))
+
+    for t,name in [(bool, "boolean?"),
+                   (cons, "pair?"),
+                   (sym, "symbol?"),
+                   (str, "string?"),
+                   ((int, long, float, complex), "number?"),
+                   ((Procedure, Primitive), "procedure?")]:
+        ctx.add_local(name, PyPrimitive(make_type_predict(t), (1, 1)))
 
 
 def plus(*args):
@@ -88,3 +98,15 @@ def prim_cdr(arg):
     return arg.cdr
 def prim_cons(a, b):
     return cons(a, b)
+
+def make_type_predict(types):
+    def predict_single(obj):
+        return isinstance(obj, types[0])
+    def predict_many(obj):
+        for t in types:
+            if isinstance(obj, t):
+                return True
+        return False
+    if isinstance(types, tuple):
+        return predict_many
+    return predict_single
