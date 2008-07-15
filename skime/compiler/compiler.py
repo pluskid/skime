@@ -15,6 +15,7 @@ class Compiler(object):
 
     sym_begin = sym("begin")
     sym_define = sym("define")
+    sym_set_x = sym("set!")
     sym_if = sym("if")
     sym_lambda = sym("lambda")
     
@@ -60,7 +61,8 @@ class Compiler(object):
             Compiler.sym_if: self.generate_if_expr,
             Compiler.sym_begin: self.generate_begin_expr,
             Compiler.sym_lambda: self.generate_lambda,
-            Compiler.sym_define: self.generate_define
+            Compiler.sym_define: self.generate_define,
+            Compiler.sym_set_x: self.generate_set_x
             }
         
         if type(expr) is sym:
@@ -201,4 +203,24 @@ class Compiler(object):
         if keep is True:
             g.emit("dup")
         g.emit_local('set', var.name)
-        
+
+    def generate_set_x(self, g, expr, keep=True):
+        if expr is None:
+            raise SyntaxError("Empty set! expression")
+        var = expr.car
+
+        if not isinstance(var, sym):
+            raise SyntaxError("Invalid set! expression, expecting symbol")
+        val = expr.cdr
+
+        if val is None:
+            raise SyntaxError("Missing value for set! expression")
+        if val.cdr is not None:
+            raise SyntaxError("Extra expressions in 'set!'")
+        val = val.car
+
+        self.generate_expr(g, val, keep=True)
+        if keep:
+            g.emit("dup")
+        g.emit_local('set', var.name)
+
