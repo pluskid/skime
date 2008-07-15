@@ -208,31 +208,31 @@ instructions:
       ctx.ip = ip
 
   -
-    name: goto_if_true
+    name: goto_if_not_false
     tags: [ctrl_flow]
-    desc: Jump if the stack top is true.
+    desc: Jump if the stack top is not False.
     operands: [ip]
     stack_before: [condition]
     stack_after: []
     code: |
       ip = get_param(ctx, 1)
       cond = ctx.pop()
-      if cond is True:
+      if cond is not False:
           ctx.ip = ip
       else:
           ctx.ip += $(insn_len)
 
   -
-    name: goto_if_not_true
+    name: goto_if_false
     tags: [ctrl_flow]
-    desc: Jump if the stack top is not true.
+    desc: Jump if the stack top is False.
     operands: [ip]
     stack_before: [condition]
     stack_after: []
     code: |
       ip = get_param(ctx, 1)
       cond = ctx.pop()
-      if cond is not True:
+      if cond is False:
           ctx.ip = ip
       else:
           ctx.ip += $(insn_len)

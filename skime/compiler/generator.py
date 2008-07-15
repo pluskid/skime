@@ -123,7 +123,7 @@ class Generator(object):
                 insn = INSN_MAP[insn_name]
                 bc.append(insn.opcode)
 
-                if insn_name in ['goto', 'goto_if_true', 'goto_if_not_true']:
+                if insn_name in ['goto', 'goto_if_false', 'goto_if_not_false']:
                     bc.append(self.labels[args[0]])
                 elif insn_name == 'push_literal':
                     idx = len(self.literals)

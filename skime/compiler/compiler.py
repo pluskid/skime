@@ -111,7 +111,7 @@ class Compiler(object):
         if keep is True:
             lbl_then = self.next_label()
             lbl_end = self.next_label()
-            g.emit('goto_if_true', lbl_then)
+            g.emit('goto_if_not_false', lbl_then)
             if expelse is None:
                 g.emit('push_nil')
             else:
@@ -123,13 +123,13 @@ class Compiler(object):
         else:
             if expelse is None:
                 lbl_end = self.next_label()
-                g.emit('goto_if_not_true', lbl_end)
+                g.emit('goto_if_false', lbl_end)
                 self.generate_expr(g, expthen, keep=False)
                 g.def_label(lbl_end)
             else:
                 lbl_then = self.next_label()
                 lbl_end = self.next_label()
-                g.emit('goto_if_true', lbl_then)
+                g.emit('goto_if_not_false', lbl_then)
                 self.generate_expr(g, expelse, keep=False)
                 g.emit('goto', lbl_end)
                 g.def_label(lbl_then)
