@@ -1,7 +1,5 @@
-# Test for built-in special forms
-from skime.vm import VM
-from skime.compiler.compiler import Compiler
-from skime.compiler.parser import parse
+from helper import HelperVM
+
 from skime.types.symbol import Symbol as sym
 from skime.types.pair import Pair as pair
 
@@ -10,14 +8,7 @@ from skime.errors import UnboundVariable
 
 from nose.tools import assert_raises
 
-class TestSyntax(object):
-    def __init__(self):
-        self.compiler = Compiler()
-        
-    def eval(self, code):
-        vm = VM()
-        proc = self.compiler.compile(parse(code), vm.ctx)
-        return vm.run(proc)
+class TestSyntax(HelperVM):
 
     def test_atom(self):
         assert self.eval("1") == 1

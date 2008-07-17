@@ -27,3 +27,5 @@ class SyntaxRule(object):
         self.pattern = rule.first
         self.template = rule.rest.first
 
+    def match(self, ctx, form):
+        return False

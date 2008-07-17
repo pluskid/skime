@@ -18,6 +18,7 @@ class Compiler(object):
     sym_set_x = sym("set!")
     sym_if = sym("if")
     sym_lambda = sym("lambda")
+    sym_quote = sym("quote")
     
     def __init__(self):
         self.label_seed = 0
@@ -34,6 +35,12 @@ class Compiler(object):
     ########################################
     # Helper functions
     ########################################
+    def self_evaluating(self, expr):
+        for t in [int, long, complex, float, str, unicode, bool, NoneType]:
+            if isinstance(expr, t):
+                return True
+        return False
+        
     def generate_body(self, g, body):
         "Generate scope body."
         if body is None:
@@ -62,10 +69,14 @@ class Compiler(object):
             Compiler.sym_begin: self.generate_begin_expr,
             Compiler.sym_lambda: self.generate_lambda,
             Compiler.sym_define: self.generate_define,
-            Compiler.sym_set_x: self.generate_set_x
+            Compiler.sym_set_x: self.generate_set_x,
+            Compiler.sym_quote: self.generate_quote,
             }
+        if self.self_evaluating(expr):
+            if keep:
+                g.emit('push_literal', expr)
         
-        if isinstance(expr, sym):
+        elif isinstance(expr, sym):
             if keep:
                 g.emit_local("push", expr.name)
 
@@ -84,15 +95,7 @@ class Compiler(object):
                 g.emit("call", argc)
 
         else:
-            found = False
-            for t in  [unicode, str, float, int, long, NoneType, bool]:
-                if isinstance(expr, t):
-                    found = True
-                    if keep:
-                        g.emit("push_literal", expr)
-                    break
-            if not found:
-                raise CompileError("Expecting atom or list, but got %s" % expr)
+            raise CompileError("Expecting atom or list, but got %s" % expr)
 
     def generate_if_expr(self, g, expr, keep=True):
         if expr is None:
@@ -228,3 +231,6 @@ class Compiler(object):
             g.emit("dup")
         g.emit_local('set', var.name)
 
+    def generate_quote(self, g, expr, keep=True):
+        if keep:
+            g.emit('push_literal', expr.first)

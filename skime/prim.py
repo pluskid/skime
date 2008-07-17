@@ -53,12 +53,21 @@ def load_primitives(ctx):
     ctx.add_local('/', PyPrimitive(div, (1, -1)))
     ctx.add_local('=', PyPrimitive(equal, (2, -1)))
 
+    ctx.add_local('not', PyPrimitive(prim_not, (1, 1)))
+
     ctx.add_local('first', PyPrimitive(prim_first, (1, 1)))
     ctx.add_local('rest', PyPrimitive(prim_rest, (1, 1)))
     ctx.add_local('pair', PyPrimitive(prim_pair, (2, 2)))
     ctx.add_local('car', PyPrimitive(prim_first, (1, 1)))
     ctx.add_local('cdr', PyPrimitive(prim_rest, (1, 1)))
     ctx.add_local('cons', PyPrimitive(prim_pair, (2, 2)))
+    ctx.add_local('set-first!', PyPrimitive(prim_set_first_x, (2, 2)))
+    ctx.add_local('set-car!', PyPrimitive(prim_set_first_x, (2, 2)))
+    ctx.add_local('set-rest!', PyPrimitive(prim_set_rest_x, (2, 2)))
+    ctx.add_local('set-cdr!', PyPrimitive(prim_set_rest_x, (2, 2)))
+    
+
+    ctx.add_local('list', PyPrimitive(prim_list, (-1, -1)))
 
     for t,name in [(bool, "boolean?"),
                    (pair, "pair?"),
@@ -69,25 +78,43 @@ def load_primitives(ctx):
         ctx.add_local(name, PyPrimitive(make_type_predict(t), (1, 1)))
 
 
+
+def type_error_decorator(meth):
+    "Decorate method to catch Python TypeError and raise skime WrongArgType"
+    def new_meth(*args):
+        try:
+            return meth(*args)
+        except TypeError, e:
+            raise WrongArgType(e.message)
+    return new_meth
+
+@type_error_decorator
 def plus(*args):
     return sum(args)
+
+@type_error_decorator
 def mul(*args):
     res = 1
     for x in args:
         res *= x
     return res
+
+@type_error_decorator
 def minus(num, *args):
     if len(args) == 0:
         return -num
     for x in args:
         num -= x
     return num
+
+@type_error_decorator
 def div(num, *args):
     if len(args) == 0:
         return 1/num
     for x in args:
         num /= x
     return num
+
 def equal(a, b, *args):
     if a != b:
         return False
@@ -95,6 +122,11 @@ def equal(a, b, *args):
         if x != a:
             return False
     return True
+
+def prim_not(arg):
+    if arg is False:
+        return True
+    return False
 
 def prim_first(arg):
     type_check(arg, pair)
@@ -104,20 +136,32 @@ def prim_rest(arg):
     return arg.rest
 def prim_pair(a, b):
     return pair(a, b)
+def prim_set_first_x(arg, val):
+    type_check(arg, pair)
+    arg.first = val
+def prim_set_rest_x(arg, val):
+    type_check(arg, pair)
+    arg.rest = val
 
+
+def prim_list(*args):
+    lst = None
+    for x in reversed(args):
+        lst = pair(x, lst)
+    return lst
 
 ########################################
 # Helper for primitives
 ########################################
-def make_type_predict(types):
+def make_type_predict(tt):
     def predict_single(obj):
-        return isinstance(obj, types[0])
+        return isinstance(obj, tt)
     def predict_many(obj):
-        for t in types:
+        for t in tt:
             if isinstance(obj, t):
                 return True
         return False
-    if isinstance(types, tuple):
+    if isinstance(tt, tuple):
         return predict_many
     return predict_single
 
@@ -125,4 +169,3 @@ def type_check(obj, t):
     if not isinstance(obj, t):
         raise WrongArgType("Expecting type %s, but got %s (type %s)" % \
                            (t, obj, type(obj)))
-
