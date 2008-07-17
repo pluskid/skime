@@ -17,3 +17,16 @@ class Pair(object):
         return isinstance(other, Pair) and \
                self.first == other.first and \
                self.rest == other.rest
+
+    def __str__(self):
+        segments = [self.first.__str__()]
+        elems = self.rest
+
+        while isinstance(elems, Pair):
+            segments.append(elems.first.__str__())
+            elems = elems.rest
+
+        if elems is not None:
+            segments.append(".")
+            segments.append(elems.__str__())
+        return '(' + ' '.join(segments) + ')'

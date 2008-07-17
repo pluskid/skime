@@ -21,9 +21,9 @@ class Macro(object):
 class SyntaxRule(object):
     def __init__(self, rule):
         if not isinstance(rule, pair) or not isinstance(rule.rest, pair):
-            raise SyntaxError("Invalid syntax rule, expecting (pattern template)")
+            raise SyntaxError("Expecting (pattern template) for syntax rule, but got %s" % rule)
         if rule.rest.rest is not None:
-            raise SyntaxError("Extra expressions in syntax rule.")
+            raise SyntaxError("Extra expressions in syntax rule: %s" % rule)
         self.pattern = rule.first
         self.template = rule.rest.first
 
