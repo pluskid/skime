@@ -65,15 +65,11 @@ class Compiler(object):
             Compiler.sym_set_x: self.generate_set_x
             }
         
-        if type(expr) is sym:
+        if isinstance(expr, sym):
             if keep:
                 g.emit_local("push", expr.name)
 
-        elif type(expr) in [unicode, str, float, int, long, NoneType, bool]:
-            if keep:
-                g.emit("push_literal", expr)
-
-        elif type(expr) is cons:
+        elif isinstance(expr, cons):
             routine = mapping.get(expr.car)
             if routine is not None:
                 routine(g, expr.cdr, keep=keep)
@@ -88,7 +84,15 @@ class Compiler(object):
                 g.emit("call", argc)
 
         else:
-            raise CompileError("Expecting atom or list, but got %s" % expr)
+            found = False
+            for t in  [unicode, str, float, int, long, NoneType, bool]:
+                if isinstance(expr, t):
+                    found = True
+                    if keep:
+                        g.emit("push_literal", expr)
+                    break
+            if not found:
+                raise CompileError("Expecting atom or list, but got %s" % expr)
 
     def generate_if_expr(self, g, expr, keep=True):
         if expr is None:
@@ -152,9 +156,9 @@ class Compiler(object):
             arglst = expr.car
             body = expr.cdr
 
-            if type(arglst) is cons:
+            if isinstance(arglst, cons):
                 args = []
-                while type(arglst) is cons:
+                while isinstance(arglst, cons):
                     args.append(arglst.car.name)
                     arglst = arglst.cdr
                 if arglst is None:
@@ -181,11 +185,11 @@ class Compiler(object):
             raise SyntaxError("Empty define expression")
         var = expr.car
         
-        if type(var) is cons:
+        if isinstance(var, cons):
             gen = self.generate_lambda
             val = cons(var.cdr, expr.cdr)
             var = var.car
-        elif type(var) is sym:
+        elif isinstance(var, sym):
             gen = self.generate_expr
             val = expr.cdr
             if val is None:
