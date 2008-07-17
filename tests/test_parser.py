@@ -1,7 +1,7 @@
 from skime.compiler.parser import parse as p
 from skime.errors import ParseError
 from skime.types.symbol import Symbol as sym
-from skime.types.cons import Cons as cons
+from skime.types.pair import Pair as pair
 
 from nose.tools import assert_almost_equal
 from nose.tools import assert_raises
@@ -55,15 +55,15 @@ class TestBool(object):
         assert p('#t') == True
         assert p('#f') == False
 
-class TestCons(object):
+class TestPair(object):
     def test_list(self):
-        assert p('(1 2 3)') == cons(1, cons(2, cons(3, None)))
-        assert p('(1)') == cons(1, None)
+        assert p('(1 2 3)') == pair(1, pair(2, pair(3, None)))
+        assert p('(1)') == pair(1, None)
         assert p('()') == None
 
-    def test_cons(self):
-        assert p('(1 . 2)') == cons(1, 2)
-        assert p('(1 2 . 3)') == cons(1, cons(2, 3))
+    def test_pair(self):
+        assert p('(1 . 2)') == pair(1, 2)
+        assert p('(1 2 . 3)') == pair(1, pair(2, 3))
     
     def test_fail(self):
         assert_raises(ParseError, p, '(')
@@ -73,29 +73,29 @@ class TestCons(object):
 
 class TestQuote(object):
     def test_quote(self):
-        assert p("'1") == cons(sym('quote'), cons(1, None))
-        assert p("''1") == cons(sym('quote'),
-                                cons(cons(sym('quote'),
-                                          cons(1, None)),
+        assert p("'1") == pair(sym('quote'), pair(1, None))
+        assert p("''1") == pair(sym('quote'),
+                                pair(pair(sym('quote'),
+                                          pair(1, None)),
                                      None))
     def test_quasiquote(self):
-        assert p("`1") == cons(sym('quasiquote'), cons(1, None))
-        assert p("`,1") == cons(sym('quasiquote'),
-                                cons(cons(sym('unquote'),
-                                          cons(1, None)),
+        assert p("`1") == pair(sym('quasiquote'), pair(1, None))
+        assert p("`,1") == pair(sym('quasiquote'),
+                                pair(pair(sym('unquote'),
+                                          pair(1, None)),
                                      None))
         assert p("`(1 ,(+ 1 5) ,@(list 1 2))") == \
-               cons(sym("quasiquote"),
-                    cons(cons(1,
-                              cons(cons(sym("unquote"),
-                                        cons(cons(sym("+"),
-                                                  cons(1,
-                                                       cons(5, None))),
+               pair(sym("quasiquote"),
+                    pair(pair(1,
+                              pair(pair(sym("unquote"),
+                                        pair(pair(sym("+"),
+                                                  pair(1,
+                                                       pair(5, None))),
                                                 None)),
-                                   cons(cons(sym("unquote-slicing"),
-                                             cons(cons(sym("list"),
-                                                       cons(1,
-                                                            cons(2, None))),
+                                   pair(pair(sym("unquote-slicing"),
+                                             pair(pair(sym("list"),
+                                                       pair(1,
+                                                            pair(2, None))),
                                                   None)),
                                         None))),
                          None))

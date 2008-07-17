@@ -1,7 +1,7 @@
 from types          import NoneType
                       
 from ..types.symbol import Symbol as sym
-from ..types.cons   import Cons as cons
+from ..types.pair   import Pair as pair
                      
 from ..errors       import CompileError
 from ..errors       import SyntaxError
@@ -40,8 +40,8 @@ class Compiler(object):
             g.emit("push_nil")
 
         while body is not None:
-            expr = body.car
-            body = body.cdr
+            expr = body.first
+            body = body.rest
             self.generate_expr(g, expr, keep=body is None)
 
         g.emit("ret")
@@ -69,18 +69,18 @@ class Compiler(object):
             if keep:
                 g.emit_local("push", expr.name)
 
-        elif isinstance(expr, cons):
-            routine = mapping.get(expr.car)
+        elif isinstance(expr, pair):
+            routine = mapping.get(expr.first)
             if routine is not None:
-                routine(g, expr.cdr, keep=keep)
+                routine(g, expr.rest, keep=keep)
             else:
                 argc = 0
-                arg  = expr.cdr
+                arg  = expr.rest
                 while arg is not None:
-                    self.generate_expr(g, arg.car, keep=True)
-                    arg = arg.cdr
+                    self.generate_expr(g, arg.first, keep=True)
+                    arg = arg.rest
                     argc += 1
-                self.generate_expr(g, expr.car, keep=True)
+                self.generate_expr(g, expr.first, keep=True)
                 g.emit("call", argc)
 
         else:
@@ -98,17 +98,17 @@ class Compiler(object):
         if expr is None:
             raise SyntaxError("Missing condition expression in 'if'")
             
-        cond = expr.car
-        expthen = expr.cdr
+        cond = expr.first
+        expthen = expr.rest
         if expthen is None:
             raise SyntaxError("Missing 'then' expression in 'if'")
-        expthen = expthen.car
+        expthen = expthen.first
 
-        expelse = expr.cdr.cdr
+        expelse = expr.rest.rest
         if expelse is not None:
-            if expelse.cdr is not None:
+            if expelse.rest is not None:
                 raise SyntaxError("Extra expression in 'if'")
-            expelse = expelse.car
+            expelse = expelse.first
 
         self.generate_expr(g, cond, keep=True)
             
@@ -153,14 +153,14 @@ class Compiler(object):
         if keep is not True:
             return  # lambda expression has no side-effect
         try:
-            arglst = expr.car
-            body = expr.cdr
+            arglst = expr.first
+            body = expr.rest
 
-            if isinstance(arglst, cons):
+            if isinstance(arglst, pair):
                 args = []
-                while isinstance(arglst, cons):
-                    args.append(arglst.car.name)
-                    arglst = arglst.cdr
+                while isinstance(arglst, pair):
+                    args.append(arglst.first.name)
+                    arglst = arglst.rest
                 if arglst is None:
                     rest_arg = False
                 else:
@@ -183,20 +183,20 @@ class Compiler(object):
     def generate_define(self, g, expr, keep=True):
         if expr is None:
             raise SyntaxError("Empty define expression")
-        var = expr.car
+        var = expr.first
         
-        if isinstance(var, cons):
+        if isinstance(var, pair):
             gen = self.generate_lambda
-            val = cons(var.cdr, expr.cdr)
-            var = var.car
+            val = pair(var.rest, expr.rest)
+            var = var.first
         elif isinstance(var, sym):
             gen = self.generate_expr
-            val = expr.cdr
+            val = expr.rest
             if val is None:
                 raise SyntaxError("Missing value for defined variable")
-            if val.cdr is not None:
+            if val.rest is not None:
                 raise SyntaxError("Extra expressions in 'define'")
-            val = val.car
+            val = val.first
         else:
             raise SyntaxError("Invalid define expression")
 
@@ -211,17 +211,17 @@ class Compiler(object):
     def generate_set_x(self, g, expr, keep=True):
         if expr is None:
             raise SyntaxError("Empty set! expression")
-        var = expr.car
+        var = expr.first
 
         if not isinstance(var, sym):
             raise SyntaxError("Invalid set! expression, expecting symbol")
-        val = expr.cdr
+        val = expr.rest
 
         if val is None:
             raise SyntaxError("Missing value for set! expression")
-        if val.cdr is not None:
+        if val.rest is not None:
             raise SyntaxError("Extra expressions in 'set!'")
-        val = val.car
+        val = val.first
 
         self.generate_expr(g, val, keep=True)
         if keep:

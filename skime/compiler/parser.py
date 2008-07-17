@@ -1,5 +1,5 @@
 from ..types.symbol import Symbol as sym
-from ..types.cons   import Cons as cons
+from ..types.pair   import Pair as pair
 
 from ..errors import ParseError
 
@@ -130,10 +130,10 @@ class Parser(object):
             elems.append(self.parse_expr())
         if not self.eat(')'):
             self.report_error("Expecting right paren ')'.")
-        car = elems.pop()
+        first = elems.pop()
         for x in reversed(elems):
-            car = cons(x, car)
-        return car
+            first = pair(x, first)
+        return first
 
     def parse_quote(self):
         if self.peak() == '\'':
@@ -141,15 +141,15 @@ class Parser(object):
         else:
             s = Parser.sym_quasiquote
         self.pop()
-        return cons(s, cons(self.parse_expr(), None))
+        return pair(s, pair(self.parse_expr(), None))
 
     def parse_unquote(self):
         self.eat(',')
         if self.eat('@'):
-            return cons(Parser.sym_unquote_slicing,
-                        cons(self.parse_expr(), None))
-        return cons(Parser.sym_unquote,
-                    cons(self.parse_expr(), None))
+            return pair(Parser.sym_unquote_slicing,
+                        pair(self.parse_expr(), None))
+        return pair(Parser.sym_unquote,
+                    pair(self.parse_expr(), None))
 
     def parse_symbol(self):
         pos1 = self.pos

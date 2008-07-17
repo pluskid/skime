@@ -20,3 +20,6 @@ class ParseError(CompileError):
 
 class MiscError(Error):
     pass
+
+class WrongArgType(Error):
+    pass

@@ -1,7 +1,8 @@
 from .types.symbol import Symbol as sym
-from .types.cons   import Cons as cons
+from .types.pair   import Pair as pair
 from .proc         import Procedure
 from .errors       import WrongArgNumber
+from .errors       import WrongArgType
 
 class Primitive(object):
     "Base class for all skime primitives"
@@ -52,12 +53,15 @@ def load_primitives(ctx):
     ctx.add_local('/', PyPrimitive(div, (1, -1)))
     ctx.add_local('=', PyPrimitive(equal, (2, -1)))
 
-    ctx.add_local('car', PyPrimitive(prim_car, (1, 1)))
-    ctx.add_local('cdr', PyPrimitive(prim_cdr, (1, 1)))
-    ctx.add_local('cons', PyPrimitive(prim_cons, (2, 2)))
+    ctx.add_local('first', PyPrimitive(prim_first, (1, 1)))
+    ctx.add_local('rest', PyPrimitive(prim_rest, (1, 1)))
+    ctx.add_local('pair', PyPrimitive(prim_pair, (2, 2)))
+    ctx.add_local('car', PyPrimitive(prim_first, (1, 1)))
+    ctx.add_local('cdr', PyPrimitive(prim_rest, (1, 1)))
+    ctx.add_local('cons', PyPrimitive(prim_pair, (2, 2)))
 
     for t,name in [(bool, "boolean?"),
-                   (cons, "pair?"),
+                   (pair, "pair?"),
                    (sym, "symbol?"),
                    (str, "string?"),
                    ((int, long, float, complex), "number?"),
@@ -92,13 +96,19 @@ def equal(a, b, *args):
             return False
     return True
 
-def prim_car(arg):
-    return arg.car
-def prim_cdr(arg):
-    return arg.cdr
-def prim_cons(a, b):
-    return cons(a, b)
+def prim_first(arg):
+    type_check(arg, pair)
+    return arg.first
+def prim_rest(arg):
+    type_check(arg, pair)
+    return arg.rest
+def prim_pair(a, b):
+    return pair(a, b)
 
+
+########################################
+# Helper for primitives
+########################################
 def make_type_predict(types):
     def predict_single(obj):
         return isinstance(obj, types[0])
@@ -110,3 +120,9 @@ def make_type_predict(types):
     if isinstance(types, tuple):
         return predict_many
     return predict_single
+
+def type_check(obj, t):
+    if not isinstance(obj, t):
+        raise WrongArgType("Expecting type %s, but got %s (type %s)" % \
+                           (t, obj, type(obj)))
+

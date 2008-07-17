@@ -80,7 +80,7 @@ TMPL_INSNS = """\
 from .ctx        import Context
 from .proc       import Procedure
 from .prim       import Primitive
-from .types.cons import Cons
+from .types.pair import Pair
 
 $(tags)
 
