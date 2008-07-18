@@ -45,17 +45,16 @@ class Compiler(object):
         self.label_seed += 1
         return "__lbl_%d" % self.label_seed
 
-    def generate_body(self, g, body, tail=False):
+    def generate_body(self, g, body, keep=True, tail=False):
         "Generate scope body."
-        if body is None:
+        if body is None and keep:
             g.emit("push_nil")
 
         while body is not None:
             expr = body.first
             body = body.rest
-            self.generate_expr(g, expr, keep=body is None)
-
-        g.emit("ret")
+            will_keep = keep and body is None
+            self.generate_expr(g, expr, keep=will_keep, tail=will_keep and tail)
 
     def generate_expr(self, g, expr, keep=True, tail=False):
         """\
@@ -69,7 +68,7 @@ class Compiler(object):
         """
         mapping = {
             Compiler.sym_if: self.generate_if_expr,
-            Compiler.sym_begin: self.generate_begin_expr,
+            Compiler.sym_begin: self.generate_body,
             Compiler.sym_lambda: self.generate_lambda,
             Compiler.sym_define: self.generate_define,
             Compiler.sym_set_x: self.generate_set_x,
@@ -100,9 +99,11 @@ class Compiler(object):
                     argc += 1
                 self.generate_expr(g, expr.first, keep=True, tail=False)
                 if tail:
-                    g.emit('call', argc)
+                    g.emit('tail_call', argc)
                 else:
-                    g.emit('tail-call', argc)
+                    g.emit('call', argc)
+                    if not keep:
+                        g.emit('pop')
 
         else:
             raise CompileError("Expecting atom or list, but got %s" % expr)
@@ -135,7 +136,8 @@ class Compiler(object):
                     g.emit('ret')
             else:
                 self.generate_expr(g, expelse, keep=True, tail=tail)
-            g.emit('goto', lbl_end)
+            if not tail:
+                g.emit('goto', lbl_end)
             g.def_label(lbl_then)
             self.generate_expr(g, expthen, keep=True, tail=tail)
             g.def_label(lbl_end)
@@ -154,18 +156,6 @@ class Compiler(object):
                 g.def_label(lbl_then)
                 self.generate_expr(g, expthen, keep=False, tail=False)
                 g.def_label(lbl_end)
-
-    def generate_begin_expr(self, g, body, keep=True, tail=False):
-        "(begin ...) is transformed to ((lambda () ...))"
-        gsub = g.push_proc(args=[], rest_arg=False)
-        self.generate_body(gsub, body)
-        g.emit("make_lambda")
-        if tail:
-            g.emit('tail-call', 0)
-        else:
-            g.emit('call', 0)
-        if not keep:
-            g.emit("pop")
 
     def generate_lambda(self, base_generator, expr, keep=True, tail=False):
         if keep is not True:
@@ -193,9 +183,11 @@ class Compiler(object):
 
             g = base_generator.push_proc(args=args, rest_arg=rest_arg)
             self.generate_body(g, body)
+            g.emit('ret')
             base_generator.emit("make_lambda")
+            
             if tail:
-                g.emit('ret')
+                base_generator.emit('ret')
 
         except AttributeError:
             raise SyntaxError("Broken lambda expression")

@@ -47,7 +47,7 @@ class Procedure(object):
 
         ip = 0
         while ip < len(self.bytecode):
-            io.write("%-4X " % ip)
+            io.write("%04X " % ip)
             instr = INSTRUCTIONS[self.bytecode[ip]]
             io.write("%20s " % instr.name)
             if instr.name in ['push_local', 'set_local']:
@@ -62,6 +62,8 @@ class Procedure(object):
                     ctx = ctx.parent
                     depth -= 1
                 io.write(" (name=%s)" % ctx.get_local_name(idx))
+            elif instr.name in ['goto', 'goto_if_not_false', 'goto_if_false']:
+                io.write("ip=0x%04X" % self.bytecode[ip+1])
             else:
                 io.write(', '.join(["%s=%s" % (name, val)
                                     for name, val in zip(instr.operands,

@@ -55,7 +55,47 @@ instructions:
           if proc.fixed_argc != proc.argc:
               rest = None
               for i in range(argc-proc.fixed_argc):
-                  rest = Cons(ctx.top(idx=i+1), rest)
+                  rest = Pair(ctx.top(idx=i+1), rest)
+              nctx.locals[proc.fixed_argc] = rest
+          ctx.pop_n(argc)
+    
+          ctx.vm.ctx = nctx
+
+      elif isinstance(proc, Primitive):
+          proc.check_arity(argc)
+          args = range(argc)
+          for i in range(argc):
+              args[i] = ctx.top(idx=argc-i)
+          ctx.pop_n(argc)
+          ctx.push(proc.call(*args))
+
+      else:
+          raise MiscError("Not a skime callable: %s" % proc)
+
+      ctx.ip += $(insn_len)
+
+  -
+    name: tail_call
+    tags: [ctx_switch, ctrl_flow]
+    desc: Call a procedure with tail-call.
+    operands: [argc]
+    stack_before: [..., proc]
+    stack_after: [retval]
+    code: |
+      argc = get_param(ctx, 1)
+      
+      proc = ctx.pop()
+
+      if isinstance(proc, Procedure):
+          proc.check_arity(argc)
+          nctx = Context(ctx.vm, proc)
+
+          for i in range(proc.fixed_argc):
+              nctx.locals[i] = ctx.top(idx=argc-i)
+          if proc.fixed_argc != proc.argc:
+              rest = None
+              for i in range(argc-proc.fixed_argc):
+                  rest = Pair(ctx.top(idx=i+1), rest)
               nctx.locals[proc.fixed_argc] = rest
           ctx.pop_n(argc)
     
