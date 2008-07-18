@@ -23,6 +23,7 @@ class Generator(object):
         self.stream = []
         self.labels = {}
         self.literals = []
+        self.literal_map = {}
         self.locals = args[:]
 
         self.argc = len(args)
@@ -126,8 +127,11 @@ class Generator(object):
                 if insn_name in ['goto', 'goto_if_false', 'goto_if_not_false']:
                     bc.append(self.labels[args[0]])
                 elif insn_name == 'push_literal':
-                    idx = len(self.literals)
-                    self.literals.append(args[0])
+                    idx = self.literal_map.get(args[0])
+                    if idx is None:
+                        idx = len(self.literals)
+                        self.literals.append(args[0])
+                        self.literal_map[args[0]] = idx
                     bc.append(idx)
                 else:
                     for x in args:
