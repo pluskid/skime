@@ -23,6 +23,13 @@ class Context(object):
         Raise ValueError if not found.
         """
         return self.proc.locals.index(name)
+
+    def get_local_name(self, idx):
+        """\
+        Get the name of a local variable from the index. Used
+        in debugging.
+        """
+        return self.proc.locals[idx]
         
     def push(self, val):
         self.stack.append(val)
@@ -43,6 +50,7 @@ class TopLevelContext(Context):
         self.bytecode = []
 
         self.locals = []
+        self.local_names = []
         self.local_maps = {}
         self.stack = []
 
@@ -55,12 +63,24 @@ class TopLevelContext(Context):
     parent = property(parent_get, parent_set)
 
     def find_local(self, name):
+        """\
+        Find index of local variable in the context.
+        Raise ValueError if not found.
+        """
         idx = self.local_maps.get(name)
         if idx is not None:
             return idx
         raise ValueError("%s not found" % name)
 
+    def get_local_name(self, idx):
+        """\
+        Get the name of a local variable from the index. Used
+        in debugging.
+        """
+        return self.local_names[idx]
+        
     def add_local(self, name, value):
         idx = len(self.locals)
         self.locals.append(value)
+        self.local_names.append(name)
         self.local_maps[name] = idx
