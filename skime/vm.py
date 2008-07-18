@@ -1,3 +1,9 @@
+# A Scheme expression is compiled into a Form. The Form object hold the
+# bytecode of the expression. To evaluate the form, a new Context is set up.
+# Instruction pointer and operand stack are held in the Context object.
+# Local variables are held in an Environment object, which are chained
+# through the lexical scope.
+
 from .ctx  import TopLevelContext, Context
 from .     import insns
 from .proc import Procedure
