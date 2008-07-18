@@ -57,11 +57,17 @@ class Procedure(object):
                 depth = self.bytecode[ip+1]
                 idx = self.bytecode[ip+2]
                 io.write("depth=%d, idx=%d" % (depth, idx))
-                ctx = self.lexical_parent
-                while depth > 1:
-                    ctx = ctx.parent
-                    depth -= 1
-                io.write(" (name=%s)" % ctx.get_local_name(idx))
+                try:
+                    ctx = self.lexical_parent
+                    while depth > 1:
+                        ctx = ctx.parent
+                        depth -= 1
+                        io.write(" (name=%s)" % ctx.get_local_name(idx))
+                except AttributeError:
+                    # The lexical parent chain may not available until runtime
+                    # (see make_lambda instruction). In that case, finding the
+                    # name of depth-local variable is impossible.
+                    pass
             elif instr.name in ['goto', 'goto_if_not_false', 'goto_if_false']:
                 io.write("ip=0x%04X" % self.bytecode[ip+1])
             else:

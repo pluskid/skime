@@ -182,8 +182,7 @@ class Compiler(object):
                 args = [arglst.name]
 
             g = base_generator.push_proc(args=args, rest_arg=rest_arg)
-            self.generate_body(g, body)
-            g.emit('ret')
+            self.generate_body(g, body, keep=True, tail=True)
             base_generator.emit("make_lambda")
             
             if tail:

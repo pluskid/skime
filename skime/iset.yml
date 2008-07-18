@@ -48,7 +48,7 @@ instructions:
 
       if isinstance(proc, Procedure):
           proc.check_arity(argc)
-          nctx = Context(ctx.vm, proc)
+          nctx = Context(ctx, proc)
 
           for i in range(proc.fixed_argc):
               nctx.locals[i] = ctx.top(idx=argc-i)
@@ -88,7 +88,7 @@ instructions:
 
       if isinstance(proc, Procedure):
           proc.check_arity(argc)
-          nctx = Context(ctx.vm, proc)
+          nctx = Context(ctx.prev, proc)
 
           for i in range(proc.fixed_argc):
               nctx.locals[i] = ctx.top(idx=argc-i)

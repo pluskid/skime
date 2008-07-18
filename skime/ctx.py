@@ -1,9 +1,9 @@
 from .prim import load_primitives
 
 class Context(object):
-    def __init__(self, vm, proc):
-        self.vm = vm
-        self.prev = vm.ctx
+    def __init__(self, prev, proc):
+        self.vm = prev.vm
+        self.prev = prev
         self.proc = proc
         
         self.ip = 0

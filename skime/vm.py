@@ -7,6 +7,6 @@ class VM(object):
         self.ctx = TopLevelContext(self)
 
     def run(self, proc):
-        self.ctx = Context(self, proc)
+        self.ctx = Context(self.ctx, proc)
         insns.run(self)
         return self.ctx.pop()
