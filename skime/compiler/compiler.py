@@ -26,7 +26,7 @@ class Compiler(object):
     def compile(self, lst, ctx):
         g = Generator(parent=ctx)
 
-        self.generate_expr(g, lst, keep=True)
+        self.generate_expr(g, lst, keep=True, tail=True)
 
         proc = g.generate()
         proc.lexical_parent = ctx
@@ -41,7 +41,11 @@ class Compiler(object):
                 return True
         return False
         
-    def generate_body(self, g, body):
+    def next_label(self):
+        self.label_seed += 1
+        return "__lbl_%d" % self.label_seed
+
+    def generate_body(self, g, body, tail=False):
         "Generate scope body."
         if body is None:
             g.emit("push_nil")
@@ -53,16 +57,15 @@ class Compiler(object):
 
         g.emit("ret")
 
-    def next_label(self):
-        self.label_seed += 1
-        return "__lbl_%d" % self.label_seed
-
-    def generate_expr(self, g, expr, keep=True):
+    def generate_expr(self, g, expr, keep=True, tail=False):
         """\
         Generate instructions for an expression.
 
         if keep == True, the value of the expression is kept on
         the stack, otherwise, it is popped or never pushed.
+
+        if tail == True, a tail call or ret will be emitted. tail
+        can never be true if keep is False.
         """
         mapping = {
             Compiler.sym_if: self.generate_if_expr,
@@ -75,29 +78,36 @@ class Compiler(object):
         if self.self_evaluating(expr):
             if keep:
                 g.emit('push_literal', expr)
+                if tail:
+                    g.emit('ret')
         
         elif isinstance(expr, sym):
             if keep:
                 g.emit_local("push", expr.name)
+                if tail:
+                    g.emit('ret')
 
         elif isinstance(expr, pair):
             routine = mapping.get(expr.first)
             if routine is not None:
-                routine(g, expr.rest, keep=keep)
+                routine(g, expr.rest, keep=keep, tail=tail)
             else:
                 argc = 0
                 arg  = expr.rest
                 while arg is not None:
-                    self.generate_expr(g, arg.first, keep=True)
+                    self.generate_expr(g, arg.first, keep=True, tail=False)
                     arg = arg.rest
                     argc += 1
-                self.generate_expr(g, expr.first, keep=True)
-                g.emit("call", argc)
+                self.generate_expr(g, expr.first, keep=True, tail=False)
+                if tail:
+                    g.emit('call', argc)
+                else:
+                    g.emit('tail-call', argc)
 
         else:
             raise CompileError("Expecting atom or list, but got %s" % expr)
 
-    def generate_if_expr(self, g, expr, keep=True):
+    def generate_if_expr(self, g, expr, keep=True, tail=False):
         if expr is None:
             raise SyntaxError("Missing condition expression in 'if'")
             
@@ -113,46 +123,51 @@ class Compiler(object):
                 raise SyntaxError("Extra expression in 'if'")
             expelse = expelse.first
 
-        self.generate_expr(g, cond, keep=True)
-            
+        self.generate_expr(g, cond, keep=True, tail=False)
+
         if keep is True:
             lbl_then = self.next_label()
             lbl_end = self.next_label()
             g.emit('goto_if_not_false', lbl_then)
             if expelse is None:
                 g.emit('push_nil')
+                if tail:
+                    g.emit('ret')
             else:
-                self.generate_expr(g, expelse, keep=True)
+                self.generate_expr(g, expelse, keep=True, tail=tail)
             g.emit('goto', lbl_end)
             g.def_label(lbl_then)
-            self.generate_expr(g, expthen, keep=True)
+            self.generate_expr(g, expthen, keep=True, tail=tail)
             g.def_label(lbl_end)
         else:
             if expelse is None:
                 lbl_end = self.next_label()
                 g.emit('goto_if_false', lbl_end)
-                self.generate_expr(g, expthen, keep=False)
+                self.generate_expr(g, expthen, keep=False, tail=False)
                 g.def_label(lbl_end)
             else:
                 lbl_then = self.next_label()
                 lbl_end = self.next_label()
                 g.emit('goto_if_not_false', lbl_then)
-                self.generate_expr(g, expelse, keep=False)
+                self.generate_expr(g, expelse, keep=False, tail=False)
                 g.emit('goto', lbl_end)
                 g.def_label(lbl_then)
-                self.generate_expr(g, expthen, keep=False)
+                self.generate_expr(g, expthen, keep=False, tail=False)
                 g.def_label(lbl_end)
 
-    def generate_begin_expr(self, g, body, keep=True):
+    def generate_begin_expr(self, g, body, keep=True, tail=False):
         "(begin ...) is transformed to ((lambda () ...))"
         gsub = g.push_proc(args=[], rest_arg=False)
         self.generate_body(gsub, body)
         g.emit("make_lambda")
-        g.emit("call", 0)
+        if tail:
+            g.emit('tail-call', 0)
+        else:
+            g.emit('call', 0)
         if not keep:
             g.emit("pop")
 
-    def generate_lambda(self, base_generator, expr, keep=True):
+    def generate_lambda(self, base_generator, expr, keep=True, tail=False):
         if keep is not True:
             return  # lambda expression has no side-effect
         try:
@@ -179,11 +194,13 @@ class Compiler(object):
             g = base_generator.push_proc(args=args, rest_arg=rest_arg)
             self.generate_body(g, body)
             base_generator.emit("make_lambda")
+            if tail:
+                g.emit('ret')
 
         except AttributeError:
             raise SyntaxError("Broken lambda expression")
         
-    def generate_define(self, g, expr, keep=True):
+    def generate_define(self, g, expr, keep=True, tail=False):
         if expr is None:
             raise SyntaxError("Empty define expression")
         var = expr.first
@@ -206,12 +223,14 @@ class Compiler(object):
         # first define local, then generate value. This allow
         # recursive function to be compiled properly.
         g.def_local(var.name)
-        gen(g, val, keep=True)
+        gen(g, val, keep=True, tail=False)
         if keep is True:
-            g.emit("dup")
+            g.emit('dup')
         g.emit_local('set', var.name)
+        if tail:
+            g.emit('ret')
 
-    def generate_set_x(self, g, expr, keep=True):
+    def generate_set_x(self, g, expr, keep=True, tail=False):
         if expr is None:
             raise SyntaxError("Empty set! expression")
         var = expr.first
@@ -226,11 +245,15 @@ class Compiler(object):
             raise SyntaxError("Extra expressions in 'set!'")
         val = val.first
 
-        self.generate_expr(g, val, keep=True)
+        self.generate_expr(g, val, keep=True, tail=False)
         if keep:
-            g.emit("dup")
+            g.emit('dup')
         g.emit_local('set', var.name)
+        if tail:
+            g.emit('ret')
 
-    def generate_quote(self, g, expr, keep=True):
+    def generate_quote(self, g, expr, keep=True, tail=False):
         if keep:
             g.emit('push_literal', expr.first)
+        if tail:
+            g.emit('ret')
