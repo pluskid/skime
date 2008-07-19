@@ -60,7 +60,11 @@ def load_primitives(env):
     env.alloc_local('*', PyPrimitive(mul, (-1, -1)))
     env.alloc_local('/', PyPrimitive(div, (1, -1)))
     env.alloc_local('=', PyPrimitive(equal, (2, -1)))
-        
+    env.alloc_local('<', PyPrimitive(less, (2, -1)))
+    env.alloc_local('>', PyPrimitive(more, (2, -1)))
+    env.alloc_local('<=', PyPrimitive(less_equal, (2, -1)))
+    env.alloc_local('>=', PyPrimitive(more_equal, (2, -1)))
+                
     env.alloc_local('not', PyPrimitive(prim_not, (1, 1)))
         
     env.alloc_local('first', PyPrimitive(prim_first, (1, 1)))
@@ -84,6 +88,7 @@ def load_primitives(env):
                    ((int, long, float, complex), "number?"),
                    ((Procedure, Primitive), "procedure?")]:
         env.alloc_local(name, PyPrimitive(make_type_predict(t), (1, 1)))
+    env.alloc_local('null?', PyPrimitive(prim_null_p, (1, 1)))
 
     env.alloc_local('apply', PyPrimitive(prim_apply, (1, -1)))
     env.alloc_local('map', PyPrimitive(prim_map, (2, -1)))
@@ -133,6 +138,42 @@ def equal(vm, a, b, *args):
             return False
     return True
 
+def less(vm, a, b, *args):
+    if a >= b:
+        return False
+    for x in args:
+        if b >= x:
+            return False
+        b = x
+    return True
+
+def more(vm, a, b, *args):
+    if a <= b:
+        return False
+    for x in args:
+        if b <= x:
+            return False
+        b = x
+    return True
+
+def less_equal(vm, a, b, *args):
+    if a > b:
+        return False
+    for x in args:
+        if b > x:
+            return False
+        b = x
+    return True
+
+def more_equal(vm, a, b, *args):
+    if a < b:
+        return False
+    for x in args:
+        if b < x:
+            return False
+        b = x
+    return True
+
 def prim_not(vm, arg):
     if arg is False:
         return True
@@ -153,6 +194,9 @@ def prim_set_rest_x(vm, arg, val):
     type_check(arg, pair)
     arg.rest = val
 
+
+def prim_null_p(arg):
+    return arg is None
 
 def prim_list(vm, *args):
     lst = None

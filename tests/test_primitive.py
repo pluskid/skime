@@ -40,7 +40,30 @@ class TestLogic(HelperVM):
         assert self.eval('(not #f)') == True
         assert self.eval("(not '())") == False
         assert self.eval("(not 0)") == False
-        
+
+    def test_compare(self):
+        assert self.eval('(< -1 1)') == True
+        assert self.eval('(< -1 -1)') == False
+        assert self.eval('(< 1 2 3 4 5)') == True
+        assert self.eval('(< 1 2 3 4 4)') == False
+
+        assert self.eval('(> 1 -1)') == True
+        assert self.eval('(> -1 -1)') == False
+        assert self.eval('(> 5 4 3 2 1)') == True
+        assert self.eval('(> 5 4 3 1 1)') == False
+
+        assert self.eval('(<= -1 1)') == True
+        assert self.eval('(<= -1 -1)') == True
+        assert self.eval('(<= 1 2 3 4 5)') == True
+        assert self.eval('(<= 1 2 3 4 4)') == True
+        assert self.eval('(<= 2 1)') == False
+
+        assert self.eval('(>= 1 -1)') == True
+        assert self.eval('(>= -1 -1)') == True
+        assert self.eval('(>= 5 4 3 2 1)') == True
+        assert self.eval('(>= 5 4 3 1 1)') == True
+        assert self.eval('(>= 1 2)') == False
+
 class TestList(HelperVM):
     def test_pair(self):
         assert self.eval('(pair 1 2)') == pair(1, 2)
