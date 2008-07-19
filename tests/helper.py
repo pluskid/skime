@@ -13,6 +13,6 @@ class HelperVM(object):
         
     def eval(self, code):
         vm = VM()
-        proc = self.compiler.compile(parse(code), vm.ctx)
+        proc = self.compiler.compile(parse(code), vm.env)
         return vm.run(proc)
 

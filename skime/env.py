@@ -8,6 +8,11 @@ class Environment(object):
         # The lexical parent
         self.parent = parent
 
+        if parent is not None:
+            self.vm = parent.vm
+        else:
+            self.vm = None
+
         # The values of local variables
         self.locals = []
         # The names of local variables

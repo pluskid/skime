@@ -4,6 +4,7 @@ from ..iset   import INSN_MAP
 from ..form   import Form
 from ..proc   import Procedure
 from ..env    import Environment
+from ..errors import UnboundVariable
 
 class Builder(object):
     "Builder is a helper of building the bytecode for a form."

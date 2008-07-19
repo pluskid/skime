@@ -4,13 +4,12 @@ class Context(object):
     def __init__(self, form, env, parent=None):
         self.form = form
         self.env = env
+        self.vm = env.vm
         self.parent = parent
 
         self.ip = 0
         self.bytecode = form.bytecode
         self.stack = []
-
-        self.next_ctx = None
 
     def push(self, val):
         self.stack.append(val)

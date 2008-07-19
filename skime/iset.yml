@@ -29,8 +29,8 @@ instructions:
     stack_before: []
     stack_after: []
     code: |
-      pctx = ctx.prev
-      ctx.next_ctx = pctx
+      pctx = ctx.parent
+      ctx.vm.ctx = pctx
       retval = ctx.pop()
       pctx.push(retval)
 
@@ -59,7 +59,7 @@ instructions:
               nctx.env.assign_local(proc.fixed_argc, rest)
           ctx.pop_n(argc)
     
-          ctx.next_ctx = nctx
+          ctx.vm.ctx = nctx
 
       elif isinstance(proc, Primitive):
           proc.check_arity(argc)
@@ -99,7 +99,7 @@ instructions:
               nctx.env.assign_local(proc.fixed_argc, rest)
           ctx.pop_n(argc)
     
-          ctx.next_ctx = nctx
+          ctx.vm.ctx = nctx
 
       elif isinstance(proc, Primitive):
           proc.check_arity(argc)
@@ -107,7 +107,9 @@ instructions:
           for i in range(argc):
               args[i] = ctx.top(idx=argc-i)
           ctx.pop_n(argc)
-          ctx.push(proc.call(*args))
+
+          nctx = ctx.parent
+          nctx.push(proc.call(*args))
 
       else:
           raise MiscError("Not a skime callable: %s" % proc)

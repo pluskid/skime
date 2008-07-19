@@ -239,7 +239,7 @@ class Compiler(object):
 
         self.generate_expr(bdr, val, keep=True, tail=False)
         if keep:
-            g.emit('dup')
+            bdr.emit('dup')
         bdr.emit_local('set', var.name)
         if tail:
             bdr.emit('ret')

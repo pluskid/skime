@@ -17,27 +17,33 @@ class VM(object):
 
     def __init__(self):
         self.env = Environment()
+        self.env.vm = self
         load_primitives(self.env)
 
-    def run(self, proc, args=[]):
-        if isinstance(proc, Procedure):
-            proc.check_arity(len(args))
-            
-            self.ctx = Context(self.ctx, proc)
-            for i in range(proc.fixed_argc):
-                self.ctx.locals[i] = args[i]
-            if proc.fixed_argc != proc.argc:
-                rest = None
-                for i in range(len(args)-proc.fixed_argc):
-                    rest = pair(args[proc.fixed_argc+i], rest)
-                proc.locals[proc.fixed_argc] = rest
-            
-            insns.run(self)
-            return self.ctx.pop()
+        self.ctx = None
 
-        elif isinstance(proc, Primitive):
-            proc.check_arity(len(args))
-            return proc.call(*args)
+    def run(self, form):
+        return form.eval(self.env)
+        
+#     def run(self, proc, args=[]):
+#         if isinstance(proc, Procedure):
+#             proc.check_arity(len(args))
+            
+#             self.ctx = Context(self.ctx, proc)
+#             for i in range(proc.fixed_argc):
+#                 self.ctx.locals[i] = args[i]
+#             if proc.fixed_argc != proc.argc:
+#                 rest = None
+#                 for i in range(len(args)-proc.fixed_argc):
+#                     rest = pair(args[proc.fixed_argc+i], rest)
+#                 proc.locals[proc.fixed_argc] = rest
+            
+#             insns.run(self)
+#             return self.ctx.pop()
 
-        else:
-            raise MiscError("Not a skime callable: %s" % proc)
+#         elif isinstance(proc, Primitive):
+#             proc.check_arity(len(args))
+#             return proc.call(*args)
+
+#         else:
+#             raise MiscError("Not a skime callable: %s" % proc)
