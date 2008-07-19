@@ -28,8 +28,7 @@ class Form(object):
         "Eval the form under env."
         vm = env.vm
         ctx = Context(self, env, vm.ctx)
-        vm.ctx = ctx
-        run(vm)
+        run(ctx)
         return ctx.pop()
 
     def disasm(self):

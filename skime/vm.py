@@ -40,8 +40,7 @@ class VM(object):
                     rest = Pair(args[i+proc.fixed_argc], rest)
                 ctx.env.assign_local(proc.fixed_argc, rest)
 
-            self.ctx = ctx
-            run(self)
+            run(ctx)
             return self.ctx.pop()
         
         elif isinstance(proc, Primitive):

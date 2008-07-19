@@ -30,9 +30,9 @@ instructions:
     stack_after: []
     code: |
       pctx = ctx.parent
-      ctx.vm.ctx = pctx
       retval = ctx.pop()
       pctx.push(retval)
+      return pctx
 
   -
     name: call
@@ -59,8 +59,6 @@ instructions:
               nctx.env.assign_local(proc.fixed_argc, rest)
           ctx.pop_n(argc)
     
-          ctx.vm.ctx = nctx
-
       elif isinstance(proc, Primitive):
           proc.check_arity(argc)
           args = range(argc)
@@ -68,11 +66,13 @@ instructions:
               args[i] = ctx.top(idx=argc-i)
           ctx.pop_n(argc)
           ctx.push(proc.call(ctx.vm, *args))
+          nctx = ctx
 
       else:
           raise WrongArgType("Not a skime callable: %s" % proc)
 
       ctx.ip += $(insn_len)
+      return nctx
 
   -
     name: tail_call
@@ -99,8 +99,6 @@ instructions:
               nctx.env.assign_local(proc.fixed_argc, rest)
           ctx.pop_n(argc)
     
-          ctx.vm.ctx = nctx
-
       elif isinstance(proc, Primitive):
           proc.check_arity(argc)
           args = range(argc)
@@ -110,12 +108,12 @@ instructions:
 
           nctx = ctx.parent
           nctx.push(proc.call(ctx.vm, *args))
-          ctx.vm.ctx = nctx
 
       else:
           raise WrongArgType("Not a skime callable: %s" % proc)
 
       ctx.ip += $(insn_len)
+      return nctx
 
   -
     name: pop
