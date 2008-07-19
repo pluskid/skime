@@ -46,7 +46,7 @@ class VM(object):
         
         elif isinstance(proc, Primitive):
             proc.check_arity(len(args))
-            return proc.call(*args)
+            return proc.call(self, *args)
         
         else:
             raise MiscError("Not a skime callable: %s" % proc)

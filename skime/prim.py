@@ -5,7 +5,14 @@ from .errors       import WrongArgNumber
 from .errors       import WrongArgType
 
 class Primitive(object):
-    "Base class for all skime primitives"
+    """\
+    Base class for all skime primitives.
+
+    When primitive is called with arguments (1, 2, 3), the arity is first checked
+    by calling prim.check_arity(3). Then the vm object is inserted as the first
+    argument and the primitive called: prim.call(vm, 1, 2, 3). The vm is always
+    the first argument of all primitives, but not count as argc.
+    """
     def check_arity(self, argc):
         "Check whether this primitive is OK to execute with argc arguments."
         raise TypeError("check_arity is not implemented in abstract class Primitive")
@@ -77,6 +84,7 @@ def load_primitives(env):
                    ((Procedure, Primitive), "procedure?")]:
         env.alloc_local(name, PyPrimitive(make_type_predict(t), (1, 1)))
 
+    env.alloc_local('apply', PyPrimitive(prim_apply, (1, -1)))
 
 
 def type_error_decorator(meth):
@@ -89,18 +97,18 @@ def type_error_decorator(meth):
     return new_meth
 
 @type_error_decorator
-def plus(*args):
+def plus(vm, *args):
     return sum(args)
 
 @type_error_decorator
-def mul(*args):
+def mul(vm, *args):
     res = 1
     for x in args:
         res *= x
     return res
 
 @type_error_decorator
-def minus(num, *args):
+def minus(vm, num, *args):
     if len(args) == 0:
         return -num
     for x in args:
@@ -108,14 +116,14 @@ def minus(num, *args):
     return num
 
 @type_error_decorator
-def div(num, *args):
+def div(vm, num, *args):
     if len(args) == 0:
         return 1/num
     for x in args:
         num /= x
     return num
 
-def equal(a, b, *args):
+def equal(vm, a, b, *args):
     if a != b:
         return False
     for x in args:
@@ -123,40 +131,53 @@ def equal(a, b, *args):
             return False
     return True
 
-def prim_not(arg):
+def prim_not(vm, arg):
     if arg is False:
         return True
     return False
 
-def prim_first(arg):
+def prim_first(vm, arg):
     type_check(arg, pair)
     return arg.first
-def prim_rest(arg):
+def prim_rest(vm, arg):
     type_check(arg, pair)
     return arg.rest
-def prim_pair(a, b):
+def prim_pair(vm, a, b):
     return pair(a, b)
-def prim_set_first_x(arg, val):
+def prim_set_first_x(vm, arg, val):
     type_check(arg, pair)
     arg.first = val
-def prim_set_rest_x(arg, val):
+def prim_set_rest_x(vm, arg, val):
     type_check(arg, pair)
     arg.rest = val
 
 
-def prim_list(*args):
+def prim_list(vm, *args):
     lst = None
     for x in reversed(args):
         lst = pair(x, lst)
     return lst
 
+
+def prim_apply(vm, proc, *args):
+    if len(args) == 0:
+        return vm.apply(proc, args)
+    argv = list(args[:-1])
+    arglst = args[-1]
+    while isinstance(arglst, pair):
+        argv.append(arglst.first)
+        arglst = arglst.rest
+    if arglst is not None:
+        raise WrongArgType("The last argument of apply should be a valid list, but got %s" % args[-1])
+    return vm.apply(proc, argv)
+
 ########################################
 # Helper for primitives
 ########################################
 def make_type_predict(tt):
-    def predict_single(obj):
+    def predict_single(vm, obj):
         return isinstance(obj, tt)
-    def predict_many(obj):
+    def predict_many(vm, obj):
         for t in tt:
             if isinstance(obj, t):
                 return True

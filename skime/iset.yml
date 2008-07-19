@@ -67,7 +67,7 @@ instructions:
           for i in range(argc):
               args[i] = ctx.top(idx=argc-i)
           ctx.pop_n(argc)
-          ctx.push(proc.call(*args))
+          ctx.push(proc.call(ctx.vm, *args))
 
       else:
           raise MiscError("Not a skime callable: %s" % proc)
@@ -109,7 +109,7 @@ instructions:
           ctx.pop_n(argc)
 
           nctx = ctx.parent
-          nctx.push(proc.call(*args))
+          nctx.push(proc.call(ctx.vm, *args))
           ctx.vm.ctx = nctx
 
       else:
