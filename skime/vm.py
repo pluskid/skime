@@ -13,7 +13,7 @@ from .prim        import Primitive, load_primitives
 from .insns       import run
 from .types.pair  import Pair as pair
 
-from .errors      import MiscError
+from .errors      import WrongArgType
 
 class VM(object):
 
@@ -49,4 +49,4 @@ class VM(object):
             return proc.call(self, *args)
         
         else:
-            raise MiscError("Not a skime callable: %s" % proc)
+            raise WrongArgType("Not a skime callable: %s" % proc)

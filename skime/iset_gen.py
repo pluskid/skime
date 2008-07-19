@@ -81,6 +81,7 @@ from .ctx        import Context
 from .proc       import Procedure
 from .prim       import Primitive
 from .types.pair import Pair
+from .errors     import WrongArgType
 
 $(tags)
 

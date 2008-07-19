@@ -70,7 +70,7 @@ instructions:
           ctx.push(proc.call(ctx.vm, *args))
 
       else:
-          raise MiscError("Not a skime callable: %s" % proc)
+          raise WrongArgType("Not a skime callable: %s" % proc)
 
       ctx.ip += $(insn_len)
 
@@ -113,7 +113,7 @@ instructions:
           ctx.vm.ctx = nctx
 
       else:
-          raise MiscError("Not a skime callable: %s" % proc)
+          raise WrongArgType("Not a skime callable: %s" % proc)
 
       ctx.ip += $(insn_len)
 

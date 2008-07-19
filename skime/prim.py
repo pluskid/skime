@@ -3,6 +3,7 @@ from .types.pair   import Pair as pair
 from .proc         import Procedure
 from .errors       import WrongArgNumber
 from .errors       import WrongArgType
+from .errors       import MiscError
 
 class Primitive(object):
     """\
