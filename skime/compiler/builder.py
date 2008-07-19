@@ -1,6 +1,9 @@
+from array    import array
+
 from ..iset   import INSN_MAP
 from ..form   import Form
 from ..proc   import Procedure
+from ..env    import Environment
 
 class Builder(object):
     "Builder is a helper of building the bytecode for a form."
@@ -105,11 +108,11 @@ class Builder(object):
                 if insn_name in ['goto', 'goto_if_false', 'goto_if_not_false']:
                     bc.append(self.labels[args[0]])
                 elif insn_name == 'push_literal':
-                    idx = self.literal_map.get(args[0])
+                    idx = self.literals_map.get(args[0])
                     if idx is None:
                         idx = len(self.literals)
                         self.literals.append(args[0])
-                        self.literal_map[args[0]] = idx
+                        self.literals_map[args[0]] = idx
                     bc.append(idx)
                 else:
                     for x in args:

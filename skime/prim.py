@@ -45,29 +45,29 @@ class PyPrimitive(Primitive):
         return "<skime primitive => %s>" % self.proc.__name__
 
 
-def load_primitives(ctx):
-    "Load primitives into a top-level context."
-    ctx.add_local('+', PyPrimitive(plus, (-1, -1)))
-    ctx.add_local('-', PyPrimitive(minus, (1, -1)))
-    ctx.add_local('*', PyPrimitive(mul, (-1, -1)))
-    ctx.add_local('/', PyPrimitive(div, (1, -1)))
-    ctx.add_local('=', PyPrimitive(equal, (2, -1)))
-
-    ctx.add_local('not', PyPrimitive(prim_not, (1, 1)))
-
-    ctx.add_local('first', PyPrimitive(prim_first, (1, 1)))
-    ctx.add_local('rest', PyPrimitive(prim_rest, (1, 1)))
-    ctx.add_local('pair', PyPrimitive(prim_pair, (2, 2)))
-    ctx.add_local('car', PyPrimitive(prim_first, (1, 1)))
-    ctx.add_local('cdr', PyPrimitive(prim_rest, (1, 1)))
-    ctx.add_local('cons', PyPrimitive(prim_pair, (2, 2)))
-    ctx.add_local('set-first!', PyPrimitive(prim_set_first_x, (2, 2)))
-    ctx.add_local('set-car!', PyPrimitive(prim_set_first_x, (2, 2)))
-    ctx.add_local('set-rest!', PyPrimitive(prim_set_rest_x, (2, 2)))
-    ctx.add_local('set-cdr!', PyPrimitive(prim_set_rest_x, (2, 2)))
+def load_primitives(env):
+    "Load primitives into an Environment."
+    env.alloc_local('+', PyPrimitive(plus, (-1, -1)))
+    env.alloc_local('-', PyPrimitive(minus, (1, -1)))
+    env.alloc_local('*', PyPrimitive(mul, (-1, -1)))
+    env.alloc_local('/', PyPrimitive(div, (1, -1)))
+    env.alloc_local('=', PyPrimitive(equal, (2, -1)))
+        
+    env.alloc_local('not', PyPrimitive(prim_not, (1, 1)))
+        
+    env.alloc_local('first', PyPrimitive(prim_first, (1, 1)))
+    env.alloc_local('rest', PyPrimitive(prim_rest, (1, 1)))
+    env.alloc_local('pair', PyPrimitive(prim_pair, (2, 2)))
+    env.alloc_local('car', PyPrimitive(prim_first, (1, 1)))
+    env.alloc_local('cdr', PyPrimitive(prim_rest, (1, 1)))
+    env.alloc_local('cons', PyPrimitive(prim_pair, (2, 2)))
+    env.alloc_local('set-first!', PyPrimitive(prim_set_first_x, (2, 2)))
+    env.alloc_local('set-car!', PyPrimitive(prim_set_first_x, (2, 2)))
+    env.alloc_local('set-rest!', PyPrimitive(prim_set_rest_x, (2, 2)))
+    env.alloc_local('set-cdr!', PyPrimitive(prim_set_rest_x, (2, 2)))
     
 
-    ctx.add_local('list', PyPrimitive(prim_list, (-1, -1)))
+    env.alloc_local('list', PyPrimitive(prim_list, (-1, -1)))
 
     for t,name in [(bool, "boolean?"),
                    (pair, "pair?"),
@@ -75,7 +75,7 @@ def load_primitives(ctx):
                    (str, "string?"),
                    ((int, long, float, complex), "number?"),
                    ((Procedure, Primitive), "procedure?")]:
-        ctx.add_local(name, PyPrimitive(make_type_predict(t), (1, 1)))
+        env.alloc_local(name, PyPrimitive(make_type_predict(t), (1, 1)))
 
 
 

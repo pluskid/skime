@@ -5,9 +5,10 @@
 # through the lexical scope.
 
 from .ctx  import TopLevelContext, Context
+from .env  import Environment
 from .     import insns
 from .proc import Procedure
-from .prim import Primitive
+from .prim import Primitive, load_primitives
 from .types.pair import Pair as pair
 
 from .errors import MiscError
@@ -15,7 +16,9 @@ from .errors import MiscError
 class VM(object):
 
     def __init__(self):
-        self.ctx = TopLevelContext(self)
+        self.env = Environment()
+        load_primitives(self.env)
+#        self.ctx = TopLevelContext(self)
 
     def run(self, proc, args=[]):
         if isinstance(proc, Procedure):

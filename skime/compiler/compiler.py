@@ -55,7 +55,7 @@ class Compiler(object):
             expr = body.first
             body = body.rest
             will_keep = keep and body is None
-            self.generate_expr(g, expr, keep=will_keep, tail=will_keep and tail)
+            self.generate_expr(bdr, expr, keep=will_keep, tail=will_keep and tail)
 
     def generate_expr(self, bdr, expr, keep=True, tail=False):
         """\
@@ -182,7 +182,7 @@ class Compiler(object):
                 rest_arg = True
                 args = [arglst.name]
 
-            bdr = base_bdr.push_proc(args=args, rest_arg=rest_arg)
+            bdr = base_builder.push_proc(args=args, rest_arg=rest_arg)
             self.generate_body(bdr, body, keep=True, tail=True)
             base_builder.emit("make_lambda")
             

@@ -24,8 +24,8 @@ class Environment(object):
         env.locals_name = list(self.locals_name)
         env.locals_map = dict(self.locals_map)
         return env
-        
-    def alloc_local(self, name):
+
+    def alloc_local(self, name, value=None):
         """\
         Allocate space for storing local variable. Return
         the index for the variable.
@@ -39,7 +39,7 @@ class Environment(object):
             return idx
         idx = len(self.locals)
         self.locals_name.append(name)
-        self.locals.append(Environment.undef)
+        self.locals.append(value)
         self.locals_map[name] = idx
         return idx
 
