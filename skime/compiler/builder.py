@@ -104,18 +104,29 @@ class Builder(object):
             # real instructions
             else:
                 insn = INSN_MAP[insn_name]
-                bc.append(insn.opcode)
 
                 if insn_name in ['goto', 'goto_if_false', 'goto_if_not_false']:
+                    bc.append(insn.opcode)
                     bc.append(self.labels[args[0]])
                 elif insn_name == 'push_literal':
-                    idx = self.literals_map.get(args[0])
-                    if idx is None:
-                        idx = len(self.literals)
-                        self.literals.append(args[0])
-                        self.literals_map[args[0]] = idx
-                    bc.append(idx)
+                    lit = args[0]
+                    # True == 1, False == 0 in Python
+                    if lit == 0 and lit is not False:
+                        bc.append(INSN_MAP['push_0'].opcode)
+                    elif lit == 1 and lit is not True:
+                        bc.append(INSN_MAP['push_1'].opcode)
+                    elif lit is None:
+                        bc.append(INSN_MAP['push_nil'].opcode)
+                    else:
+                        bc.append(insn.opcode)
+                        idx = self.literals_map.get(args[0])
+                        if idx is None:
+                            idx = len(self.literals)
+                            self.literals.append(args[0])
+                            self.literals_map[args[0]] = idx
+                        bc.append(idx)
                 else:
+                    bc.append(insn.opcode)
                     for x in args:
                         bc.append(x)
 
