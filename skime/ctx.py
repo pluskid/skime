@@ -8,7 +8,10 @@ class Context(object):
         self.parent = parent
 
         self.ip = 0
-        self.bytecode = form.bytecode
+        if self.form is not None:
+            self.bytecode = form.bytecode
+        else:
+            self.bytecode = []
         self.stack = []
 
     def push(self, val):

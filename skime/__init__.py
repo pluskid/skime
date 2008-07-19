@@ -10,7 +10,7 @@ class VM(object):
         self.compiler = Compiler()
     
     def compile(self, code):
-        return self.compiler.compile(parse(code), self.vm.ctx)
+        return self.compiler.compile(parse(code), self.vm.env)
 
     def eval(self, compiled):
         return self.vm.run(compiled)
@@ -19,14 +19,14 @@ class VM(object):
         pass
 
     def get(self, name, default=None):
-        try:
-            idx = self.vm.ctx.find_local(name)
-            return self.vm.ctx.locals[idx]
-        except ValueError:
+        idx = self.vm.env.find_local(name)
+        if idx is not None:
+            return self.vm.env.read_local(idx)
+        else:
             return default
 
     def apply(self, proc, args):
-        return self.vm.run(proc, args)
+        return self.vm.apply(proc, args)
 
     def toscheme(self, val, shallow=False):
         return val

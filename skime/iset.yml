@@ -110,6 +110,7 @@ instructions:
 
           nctx = ctx.parent
           nctx.push(proc.call(*args))
+          ctx.vm.ctx = nctx
 
       else:
           raise MiscError("Not a skime callable: %s" % proc)

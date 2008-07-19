@@ -189,8 +189,8 @@ class Compiler(object):
             if tail:
                 base_builder.emit('ret')
 
-        except AttributeError:
-            raise SyntaxError("Broken lambda expression")
+        except AttributeError, e:
+            raise SyntaxError("Broken lambda expression: "+e.message)
         
     def generate_define(self, bdr, expr, keep=True, tail=False):
         if expr is None:
@@ -217,7 +217,7 @@ class Compiler(object):
         bdr.def_local(var.name)
         gen(bdr, val, keep=True, tail=False)
         if keep is True:
-            g.emit('dup')
+            bdr.emit('dup')
         bdr.emit_local('set', var.name)
         if tail:
             bdr.emit('ret')
