@@ -4,7 +4,7 @@ class Environment(object):
     and is chained through the lexical scope.
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         # The lexical parent
         self.parent = parent
 
@@ -14,6 +14,16 @@ class Environment(object):
         self.locals_name = []
         # The mapping from name to index
         self.locals_map = {}
+
+    def dup(self):
+        """\
+        Create a copy of self.
+        """
+        env = Environment(self.parent)
+        env.locals = list(self.locals)
+        env.locals_name = list(self.locals_name)
+        env.locals_map = dict(self.locals_map)
+        return env
         
     def alloc_local(self, name):
         """\
@@ -36,10 +46,10 @@ class Environment(object):
     def find_local(self, name):
         """\
         Find the location(index) where the local variable is
-        stored. KeyError will raise if no local variable with
-        the given name is found.
+        stored. Return None if no variable with given name is
+        found.
         """
-        return self.locals_map[name]
+        return self.locals_map.get(name)
 
     def get_name(self, idx):
         """\

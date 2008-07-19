@@ -4,23 +4,33 @@ from .errors import WrongArgNumber
 from .iset   import INSTRUCTIONS
 
 class Procedure(object):
-    def __init__(self, argc, fixed_argc, locals, literals, bytecode):
-        self.lexical_parent = None
-        self.argc = argc
-        self.fixed_argc = fixed_argc
-        self.locals = locals
-        self.literals = literals
-        self.bytecode = bytecode
+    def __init__(self, builder, bytecode):
+        # The lexical parent of the procedure scope. It might be
+        # an Environment created at compile time. In that case,
+        # a 'make-lambda' instruction will be emitted in the
+        # instruction sequence to fix the parent at run time.
+        self.lexical_parent = builder.env.parent
+        
+        # The Environment created at compile time. A new
+        # Environment will be created when the procedure
+        # is called.
+        self.env = builder.env
+        
+        self.bytecode = builder.bytecode
+
+        self.argc = len(builder.args)
+        self.rest_arg = builder.rest_arg
 
     def check_arity(self, argc):
-        if self.fixed_argc == self.argc:
+        if self.rest_arg:
+            if argc < self.argc-1:
+                raise WrongArgNumber("Expecting at least %d arguments, but got %d" %
+                                     (self.argc-1, argc))
+        else:
             if argc != self.argc:
                 raise WrongArgNumber("Expecting %d arguments, but got %d" %
                                      (self.argc, argc))
-        else:
-            if argc < self.fixed_argc:
-                raise WrongArgNumber("Expecting at least %d arguments, but got %d" %
-                                     (self.fixed_argc, argc))
+                
     def disasm(self):
         "Show the disassemble of the instructions of the proc. Useful for debug."
         io = StringIO()

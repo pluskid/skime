@@ -1,13 +1,11 @@
 from .errors import MiscError
+from .env    import Environment
 
 class Form(object):
     """\
     A Form is the result of compiling an expression.
     """
-    def __init__(self, env, bytecode):
-        # The lexical environment of the form
-        self.env = env
-
+    def __init__(self, builder, bytecode):
         # The bytecode of this form
         self.bytecode = bytecode
 
