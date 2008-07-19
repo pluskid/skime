@@ -30,7 +30,7 @@ instructions:
     stack_after: []
     code: |
       pctx = ctx.prev
-      ctx.vm.ctx = pctx
+      ctx.next_ctx = pctx
       retval = ctx.pop()
       pctx.push(retval)
 
@@ -48,18 +48,18 @@ instructions:
 
       if isinstance(proc, Procedure):
           proc.check_arity(argc)
-          nctx = Context(ctx, proc)
+          nctx = Context(proc, proc.env.dup(), ctx)
 
           for i in range(proc.fixed_argc):
-              nctx.locals[i] = ctx.top(idx=argc-i)
+              nctx.env.assign_local(i, ctx.top(idx=argc-i))
           if proc.fixed_argc != proc.argc:
               rest = None
               for i in range(argc-proc.fixed_argc):
                   rest = Pair(ctx.top(idx=i+1), rest)
-              nctx.locals[proc.fixed_argc] = rest
+              nctx.env.assign_local(proc.fixed_argc, rest)
           ctx.pop_n(argc)
     
-          ctx.vm.ctx = nctx
+          ctx.next_ctx = nctx
 
       elif isinstance(proc, Primitive):
           proc.check_arity(argc)
@@ -88,18 +88,18 @@ instructions:
 
       if isinstance(proc, Procedure):
           proc.check_arity(argc)
-          nctx = Context(ctx.prev, proc)
+          nctx = Context(proc, proc.env.dup(), ctx.parent)
 
           for i in range(proc.fixed_argc):
-              nctx.locals[i] = ctx.top(idx=argc-i)
+              nctx.env.assign_local(i, ctx.top(idx=argc-i))
           if proc.fixed_argc != proc.argc:
               rest = None
               for i in range(argc-proc.fixed_argc):
                   rest = Pair(ctx.top(idx=i+1), rest)
-              nctx.locals[proc.fixed_argc] = rest
+              nctx.env.assign_local(proc.fixed_argc, rest)
           ctx.pop_n(argc)
     
-          ctx.vm.ctx = nctx
+          ctx.next_ctx = nctx
 
       elif isinstance(proc, Primitive):
           proc.check_arity(argc)
@@ -133,7 +133,7 @@ instructions:
     stack_after: [value]
     code: |
       idx = get_param(ctx, 1)
-      loc = ctx.locals[idx]
+      loc = ctx.env.read_local(idx)
       ctx.push(loc)
 
   -
@@ -146,7 +146,7 @@ instructions:
     code: |
       idx = get_param(ctx, 1)
       val = ctx.pop()
-      ctx.locals[idx] = val
+      ctx.env.assign_local(idx, val)
 
   -
     name: push_local_depth
@@ -159,11 +159,11 @@ instructions:
       depth = get_param(ctx, 1)
       idx = get_param(ctx, 2)
 
-      pctx = ctx
+      penv = ctx.env
       while depth > 0:
-          pctx = pctx.parent
+          penv = penv.parent
           depth -= 1
-      loc = pctx.locals[idx]
+      loc = penv.read_local(idx)
       ctx.push(loc)
 
   -
@@ -178,11 +178,11 @@ instructions:
       idx = get_param(ctx, 2)
       value = ctx.pop()
 
-      pctx = ctx
+      penv = ctx.env
       while depth > 0:
-          pctx = pctx.parent
+          penv = penv.parent
           depth -= 1
-      pctx.locals[idx] = value
+      penv.assign_local(idx, value)
 
   -
     name: push_literal
@@ -193,7 +193,7 @@ instructions:
     stack_after: [value]
     code: |
       idx = get_param(ctx, 1)
-      lit = ctx.proc.literals[idx]
+      lit = ctx.form.literals[idx]
       ctx.push(lit)
 
   -
@@ -286,4 +286,4 @@ instructions:
     stack_after: [lambda]
     code: |
       proc = ctx.top()
-      proc.lexical_parent = ctx
+      proc.env.parent = ctx.env

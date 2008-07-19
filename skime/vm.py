@@ -4,7 +4,7 @@
 # Local variables are held in an Environment object, which are chained
 # through the lexical scope.
 
-from .ctx  import TopLevelContext, Context
+from .ctx  import Context
 from .env  import Environment
 from .     import insns
 from .proc import Procedure
@@ -18,7 +18,6 @@ class VM(object):
     def __init__(self):
         self.env = Environment()
         load_primitives(self.env)
-#        self.ctx = TopLevelContext(self)
 
     def run(self, proc, args=[]):
         if isinstance(proc, Procedure):

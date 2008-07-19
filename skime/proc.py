@@ -5,33 +5,38 @@ from .compiler.disasm import disasm
 
 class Procedure(object):
     def __init__(self, builder, bytecode):
-        # The lexical parent of the procedure scope. It might be
-        # an Environment created at compile time. In that case,
-        # a 'make-lambda' instruction will be emitted in the
-        # instruction sequence to fix the parent at run time.
         self.lexical_parent = builder.env.parent
         
         # The Environment created at compile time. A new
         # Environment will be created when the procedure
         # is called.
+        #
+        # self.env.parent (i.e. the lexical parent of the
+        # env) might be an Environment created at compile
+        # time. In that case, a 'make-lambda' instruction
+        # will be emitted in the instruction sequence to
+        # fix the parent at run time.
         self.env = builder.env
         
         self.bytecode = bytecode
 
         self.argc = len(builder.args)
-        self.rest_arg = builder.rest_arg
+        if builder.rest_arg:
+            self.fixed_argc = self.argc-1
+        else:
+            self.fixed_argc = self.argc
 
         self.literals = list(builder.literals)
 
     def check_arity(self, argc):
-        if self.rest_arg:
-            if argc < self.argc-1:
-                raise WrongArgNumber("Expecting at least %d arguments, but got %d" %
-                                     (self.argc-1, argc))
-        else:
+        if self.fixed_argc == self.argc:
             if argc != self.argc:
                 raise WrongArgNumber("Expecting %d arguments, but got %d" %
                                      (self.argc, argc))
+        else:
+            if argc < self.fixed_argc:
+                raise WrongArgNumber("Expecting at least %d arguments, but got %d" %
+                                     (self.fixed_argc, argc))
                 
     def disasm(self):
         "Show the disassemble of the instructions of the proc. Useful for debug."
@@ -42,7 +47,7 @@ class Procedure(object):
         
         io.write('arguments: ')
         args = [self.env.get_name(i) for i in range(self.argc)]
-        if self.rest_arg:
+        if self.fixed_argc != self.argc:
             args[-1] = '*'+args[-1]
         io.write(', '.join(args))
         io.write('\n')

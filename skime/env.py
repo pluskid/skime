@@ -25,6 +25,18 @@ class Environment(object):
         env.locals_map = dict(self.locals_map)
         return env
 
+    def assign_local(self, idx, value):
+        """\
+        Assign value to the local variable stored at idx.
+        """
+        self.locals[idx] = value
+
+    def read_local(self, idx):
+        """\
+        Get the value of the local variable stored at idx.
+        """
+        return self.locals[idx]
+
     def alloc_local(self, name, value=None):
         """\
         Allocate space for storing local variable. Return

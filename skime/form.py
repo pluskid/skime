@@ -3,6 +3,8 @@ from cStringIO        import StringIO
 from .errors          import MiscError
 from .env             import Environment
 from .compiler.disasm import disasm
+from .insns           import run
+from .ctx             import Context
 
 class Form(object):
     """\
@@ -10,6 +12,10 @@ class Form(object):
     """
     def __init__(self, builder, bytecode):
         # The environment under which the form is compiled
+        # This is a reference to an Environment that might
+        # be shared by many forms. This is only used in
+        # debugging to find the local variable names used
+        # by this form.
         self.env = builder.env
         
         # The bytecode of this form
@@ -21,7 +27,7 @@ class Form(object):
     def eval(self, env):
         "Eval the form under env."
         ctx = Context(self, env)
-        ctx.run()
+        run(ctx)
         return ctx.pop()
 
     def disasm(self):

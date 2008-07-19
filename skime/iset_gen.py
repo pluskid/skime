@@ -97,14 +97,16 @@ def has_tag(opcode, tag):
 def get_param(ctx, n):
     return ctx.bytecode[ctx.ip+n]
 
-
-def run(vm):
-    ctx = vm.ctx
+def run(ctx):
     while ctx.ip < len(ctx.bytecode):
         opcode = ctx.bytecode[ctx.ip]
         INSN_ACTION[opcode](ctx)
         if has_tag(opcode, TAG_CTX_SWITCH):
-            ctx = vm.ctx
+            nctx = ctx.next_ctx
+            if nctx is None:
+                return
+            ctx.next_ctx = None
+            ctx = nctx
 """
 
 TMPL_ISET = """\
