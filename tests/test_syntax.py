@@ -35,6 +35,7 @@ class TestSyntax(HelperVM):
         assert self.eval("((lambda x (first x)) 1 2)") == 1
         assert self.eval("((lambda x (first x)) 1 2 3 4 5)") == 1
         assert self.eval("((lambda x (first x)) 1)") == 1
+        assert self.eval("((lambda x x) 1 2)") == pair(1, pair(2, None))
         assert self.eval("((lambda (x . y) x) 1)") == 1
         assert self.eval("((lambda (x . y) y) 1)") == None
         assert self.eval("((lambda (x . y) (first y)) 1 2 3)") == 2

@@ -76,3 +76,15 @@ class TestPridict(HelperVM):
         assert self.eval('(procedure? pair)') == True
         assert self.eval('(procedure? (lambda (x) x))') == True
         assert self.eval('(procedure? 5)') == False
+
+class TestApply(HelperVM):
+    def test_apply(self):
+        assert self.eval('(apply +)') == 0
+        assert self.eval("(apply + 1 '())") == 1
+        assert self.eval("(apply + '(1))") == 1
+        assert self.eval("(apply + (list 1))") == 1
+        assert self.eval("(apply + 1 '(2))") == 3
+        assert self.eval("(apply - 3 '(2 1))") == 0
+        assert self.eval("(apply (lambda (x) x) 1 '())") == 1
+        assert_raises(WrongArgNumber, self.eval, "(apply (lambda (x) x) 1 '(2))")
+        assert self.eval("(apply (lambda x x) 1 '(2 3))") == pair(1, pair(2, pair(3, None)))

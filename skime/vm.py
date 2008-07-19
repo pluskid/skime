@@ -36,8 +36,8 @@ class VM(object):
                 ctx.env.assign_local(i, args[i])
             if proc.fixed_argc != proc.argc:
                 rest = None
-                for i in range(len(args)-proc.fixed_argc):
-                    rest = Pair(args[i+proc.fixed_argc], rest)
+                for i in range(len(args)-1, proc.fixed_argc-1, -1):
+                    rest = Pair(args[i], rest)
                 ctx.env.assign_local(proc.fixed_argc, rest)
 
             run(ctx)
