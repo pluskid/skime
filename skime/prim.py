@@ -86,6 +86,7 @@ def load_primitives(env):
         env.alloc_local(name, PyPrimitive(make_type_predict(t), (1, 1)))
 
     env.alloc_local('apply', PyPrimitive(prim_apply, (1, -1)))
+    env.alloc_local('map', PyPrimitive(prim_map, (2, -1)))
 
 
 def type_error_decorator(meth):
@@ -171,6 +172,33 @@ def prim_apply(vm, proc, *args):
     if arglst is not None:
         raise WrongArgType("The last argument of apply should be a valid list, but got %s" % args[-1])
     return vm.apply(proc, argv)
+
+def prim_map(vm, proc, *lists):
+    res = []
+    while True:
+        args = []
+        end = False
+        lists = list(lists)
+        for i in range(len(lists)):
+            lst = lists[i]
+            if not isinstance(lst, pair):
+                if lst is None:
+                    end = True
+                else:
+                    raise WrongArgType("Arguments of map should be valid lists.")
+            else:
+                if end:
+                    raise MiscError("Lists supplied to map should be all of the same length.")
+                args.append(lst.first)
+                lists[i] = lst.rest
+        if end:
+            break
+        res.append(vm.apply(proc, args))
+    rest = None
+    for x in reversed(res):
+        rest = pair(x, rest)
+    return rest
+
 
 ########################################
 # Helper for primitives
