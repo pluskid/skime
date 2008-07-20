@@ -34,3 +34,5 @@ class VM(object):
     def fromscheme(self, val, shallow=False):
         return val
         
+    def type(self, val):
+        return type(val)

@@ -195,7 +195,7 @@ def prim_set_rest_x(vm, arg, val):
     arg.rest = val
 
 
-def prim_null_p(arg):
+def prim_null_p(vm, arg):
     return arg is None
 
 def prim_list(vm, *args):
