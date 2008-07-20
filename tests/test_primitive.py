@@ -41,6 +41,24 @@ class TestLogic(HelperVM):
         assert self.eval("(not '())") == False
         assert self.eval("(not 0)") == False
 
+        assert self.eval("(or)") == False
+        assert self.eval("(or 1 2 3)") == 1
+        assert self.eval("(or #f 2)") == 2
+        assert self.eval("(or #f #f)") == False
+        assert self.eval("""(begin
+                              (define foo 2)
+                              (or #f (set! foo 3) (set! foo 4))
+                              foo)""") == 3
+
+        assert self.eval("(and)") == True
+        assert self.eval("(and #t)") == True
+        assert self.eval("(and 1 2 3)") == 3
+        assert self.eval("(and #t 2)") == 2
+        assert self.eval("""(begin
+                              (define foo 2)
+                              (and #t (set! foo 3) (set! foo 4))
+                              foo)""") == 4
+
     def test_compare(self):
         assert self.eval('(< -1 1)') == True
         assert self.eval('(< -1 -1)') == False

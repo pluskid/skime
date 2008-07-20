@@ -19,6 +19,8 @@ class Compiler(object):
     sym_if = sym("if")
     sym_lambda = sym("lambda")
     sym_quote = sym("quote")
+    sym_or = sym("or")
+    sym_and = sym("and")
     
     def __init__(self):
         self.label_seed = 0
@@ -74,6 +76,8 @@ class Compiler(object):
             Compiler.sym_define: self.generate_define,
             Compiler.sym_set_x: self.generate_set_x,
             Compiler.sym_quote: self.generate_quote,
+            Compiler.sym_or: self.generate_or,
+            Compiler.sym_and: self.generate_and
             }
         if self.self_evaluating(expr):
             if keep:
@@ -249,3 +253,57 @@ class Compiler(object):
             bdr.emit('push_literal', expr.first)
             if tail:
                 bdr.emit('ret')
+
+    def generate_or(self, bdr, expr, keep=True, tail=False):
+        lbl_end = self.next_label()
+        expr_generated = False
+        while isinstance(expr, pair):
+            el = expr.first
+            expr = expr.rest
+            # 'False' literal in 'or' expression can be silently
+            # ignored
+            if el is not False:
+                expr_generated = True
+                self.generate_expr(bdr, el, keep=True, tail=False)
+                if keep:
+                    bdr.emit('dup')
+                bdr.emit('goto_if_not_false', lbl_end)
+                if keep:
+                    if expr is not None:
+                        bdr.emit('pop')
+        if expr is not None:
+            raise SyntaxError("Invalid element in or expression: %s" % expr)
+        if keep:
+            if not expr_generated:
+                bdr.emit('push_false')
+            if tail:
+                bdr.emit('ret')
+                
+        bdr.def_label(lbl_end)
+
+    def generate_and(self, bdr, expr, keep=True, tail=False):
+        lbl_end = self.next_label()
+        expr_generated = False
+        while isinstance(expr, pair):
+            el = expr.first
+            expr = expr.rest
+            # 'True' literal in 'and' expression can be silently
+            # ignored
+            if el is not True:
+                expr_generated = True
+                self.generate_expr(bdr, el, keep=True, tail=False)
+                if keep:
+                    bdr.emit('dup')
+                bdr.emit('goto_if_false', lbl_end)
+                if keep:
+                    if expr is not None:
+                        bdr.emit('pop')
+        if expr is not None:
+            raise SyntaxError("Invalid element in or expression: %s" % expr)
+        if keep:
+            if not expr_generated:
+                bdr.emit('push_true')
+            if tail:
+                bdr.emit('ret')
+                
+        bdr.def_label(lbl_end)
