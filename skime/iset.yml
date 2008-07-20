@@ -228,6 +228,26 @@ instructions:
       ctx.push(None)
 
   -
+    name: push_true
+    tags: []
+    desc: Push True to oeprand stack.
+    operands: []
+    stack_before: []
+    stack_after: [True]
+    code: |
+      ctx.push(True)
+
+  -
+    name: push_false
+    tags: []
+    desc: Push False to oeprand stack.
+    operands: []
+    stack_before: []
+    stack_after: [False]
+    code: |
+      ctx.push(False)
+
+  -
     name: dup
     tags: []
     desc: Duplicate the stack top object.

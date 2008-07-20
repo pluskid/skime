@@ -37,11 +37,18 @@ class Builder(object):
 
         if insn_name == 'push_literal':
             lit = args[0]
-            # True == 1, False == 0 in Python
-            if lit == 0 and lit is not False:
+            # NOTE True == 1, False == 0 in Python, so "is True/False"
+            # test should be put before "== 0/1" test.
+            if lit is True:
+                insn_name = 'push_true'
+                args = ()
+            elif lit is False:
+                insn_name = 'push_false'
+                args = ()
+            elif lit == 0:
                 insn_name = 'push_0'
                 args = ()
-            elif lit == 1 and lit is not True:
+            elif lit == 1:
                 insn_name = 'push_1'
                 args = ()
             elif lit is None:
