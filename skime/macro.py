@@ -29,7 +29,12 @@ class SyntaxRule(object):
         self.template = rule.rest.first
 
     def match(self, env, form):
-        return False
+        md = MatchDict()
+        if not isinstance(form, pair):
+            raise SyntaxError("Invalid macro matching against the form %s" % form)
+        # skip the first element, which is the macro keyword
+        self.matcher.match(pair(form.rest, None), md)
+        return md
 
     def compile_pattern(self, pattern, literals):
         """\
