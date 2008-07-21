@@ -123,7 +123,8 @@ class Parser(object):
             if self.peak() == ')':
                 elems.append(None)
                 break
-            if self.eat('.'):
+            if self.peak() == '.' and self.peak(idx=1) != '.':
+                self.eat('.')
                 elems.append(self.parse_expr())
                 self.skip_all()
                 break
@@ -156,7 +157,7 @@ class Parser(object):
         self.pop()
         while self.more() and \
               not self.isspace(self.peak()) and \
-              not self.peak() in ['\'', ')', '(', ',', '@', '.']:
+              not self.peak() in ['\'', ')', '(', ',', '@']:
             self.pop()
         pos2 = self.pos
         return sym(self.text[pos1:pos2])

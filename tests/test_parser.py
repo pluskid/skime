@@ -50,7 +50,7 @@ class TestSymbol(object):
         assert p('foo123') == sym('foo123')
         assert p('string->number') == sym('string->number')
         assert p('number?') == sym('number?')
-        assert_raises(ParseError, p, 'symbol-with.dot')
+        assert p('...') == sym('...')
 
 class TestBool(object):
     def test_bool(self):
@@ -65,6 +65,7 @@ class TestPair(object):
 
     def test_pair(self):
         assert p('(1 . 2)') == pair(1, 2)
+        assert p('(1 .2)') == pair(1, 2)
         assert p('(1 2 . 3)') == pair(1, pair(2, 3))
     
     def test_fail(self):

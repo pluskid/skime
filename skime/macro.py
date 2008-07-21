@@ -19,22 +19,57 @@ class Macro(object):
             raise SyntaxError("Invalid syntax for syntax-rules form")
 
 class SyntaxRule(object):
-    def __init__(self, rule):
+    def __init__(self, rule, literals):
         if not isinstance(rule, pair) or not isinstance(rule.rest, pair):
             raise SyntaxError("Expecting (pattern template) for syntax rule, but got %s" % rule)
         if rule.rest.rest is not None:
             raise SyntaxError("Extra expressions in syntax rule: %s" % rule)
-        self.matcher = self.compile_pattern(rule.first)
+        self.variables = {}
+        self.matcher = self.compile_pattern(rule.first, literals)
         self.template = rule.rest.first
 
     def match(self, env, form):
         return False
 
-    def compile_pattern(self, pattern):
+    def compile_pattern(self, pattern, literals):
         """\
         Compile pattern into a matcher.
         """
-        pass
+        if not isinstance(pattern, pair):
+            raise SyntaxError("Invalid pattern for macro: %s" % pattern)
+        # skip the first element, it should be the macro keyword or underscope
+        # NOTE, if some invalid expressions are put here, they will be silently
+        # ignored
+        pattern = pattern.rest
+
+        return self._compile_pattern(pattern, literals)
+
+    def _compile_pattern(self, pat, literals):
+        if isinstance(pat, pair):
+            mt = SequenceMatcher()
+            while isinstance(pat, pair):
+                submt = self._compile_pattern(pat.first, literals)
+                mt.add_matcher(submt)
+                pat = pat.rest
+                if isinstance(pat, pair) and pat.first == sym('...'):
+                    submt.ellipsis = True
+                    pat = pat.rest
+            if pat is not None:
+                submt = self._compile_pattern(pat, literals)
+                mt.add_matcher(RestMatcher(submt))
+            return mt
+
+        if isinstance(pat, sym):
+            if pat in literals:
+                return LiteralMatcher(pat.name)
+            if pat == sym('_'):
+                return UnderscopeMatcher()
+            if self.variables.get(pat.name) is not None:
+                raise SyntaxError("Duplicated variable in macro: %s" % pat)
+            self.variables[pat.name] = True
+            return VariableMatcher(pat.name)
+
+        return ConstantMatcher(pat)
 
 ########################################
 # Pattern matching
@@ -48,8 +83,6 @@ class MatchDict(dict):
     have duplicated variable patterns with the same name.
     """
     def __setitem__(self, key, value):
-        if self.has_key(key):
-            raise SyntaxError("Duplicated variable pattern in macro: %s" % key)
         dict.__setitem__(self, key, value)
     def __str__(self):
         return "<MatchDict %s>" % dict.__str__(self)
@@ -65,23 +98,12 @@ class Ellipsis(list):
 
 class EllipsisMatchDict(dict):
     """\
-    Like MatchDict, excpet that all values are Ellipsis. Thus duplicated
-    item assignments are allowed, and automatically append to the corresponding
-    Ellipsis. However, the duplication will still be check for the parent
-    dict.
+    Like MatchDict, excpet that all values are Ellipsis.
     """
-    def __init__(self, parent):
-        self.parent = parent
     def __setitem__(self, key, value):
         el = self.get(key)
         if el is None:
-            # no such key yet, check parent for duplication first
-            d = self
-            while isinstance(d, EllipsisMatchDict):
-                d = d.parent
-                if d.has_key(key):
-                    raise SyntaxError("Duplicated variable pattern in macro: %s" % key)
-            # ok, no duplication, create the Ellipsis
+            # no such key yet
             dict.__setitem__(self, key, Ellipsis(value))
         else:
             # already has the key
@@ -108,6 +130,25 @@ class Matcher(object):
                                               self.name,
                                               self.ellipsis)
 
+class LiteralMatcher(Matcher):
+    # TODO: implement this
+    pass
+
+class ConstantMatcher(Matcher):
+    """\
+    Matches any constant.
+    """
+    def __init__(self, value):
+        Matcher.__init__(self, None)
+        self.value = value
+    def match(self, expr, match_dict):
+        if not isinstance(expr, pair) or \
+           pair.first != self.value:
+            raise MatchError("%s: can not match %s" % (self, expr))
+        return expr.rest
+    def __str__(self):
+        return "<ConstantMatcher value=%s, ellipsis=%s>" % (self.value, self.ellipsis)
+
 class VariableMatcher(Matcher):
     """\
     A variable match any single expression.
@@ -133,6 +174,8 @@ class UnderscopeMatcher(Matcher):
     """\
     An underscope match any single expression and discard the matched result.
     """
+    def __init__(self):
+        Matcher.__init__(self, '_')
     def match(self, expr, match_dict):
         if self.ellipsis:
             while isinstance(expr, pair):
@@ -149,12 +192,14 @@ class UnderscopeMatcher(Matcher):
 class RestMatcher(Matcher):
     """\
     RestMatcher match against the rest of a list like (a b . c), where c will
-    be a RestMatcher.
+    be a RestMatcher. The matcher is implemented by wrapping another matcher.
     """
+    def __init__(self, matcher):
+        self.matcher = matcher
     def match(self, expr, match_dict):
-        # eat the whole thing
-        match_dict[self.name] = expr
-        return None
+        return self.matcher.match(pair(expr, None), match_dict)
+    def __str__(self):
+        return "<RestMatcher: matcher=%s>" % self.matcher
 
 class SequenceMatcher(Matcher):
     """\
@@ -166,7 +211,7 @@ class SequenceMatcher(Matcher):
 
     def match(self, expr, match_dict):
         if self.ellipsis:
-            md = EllipsisMatchDict(match_dict)
+            md = EllipsisMatchDict()
             try:
                 while isinstance(expr, pair):
                     self.match_sequence(expr, md)
