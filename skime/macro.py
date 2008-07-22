@@ -131,9 +131,9 @@ class Matcher(object):
         raise MatchError("%s: match not implemented" % self)
 
     def __str__(self):
-        return '<%s name=%s, ellipsis=%s>' % (self.__class__.__name__,
-                                              self.name,
-                                              self.ellipsis)
+        return '<%s%s name=%s>' % (self.__class__.__name__,
+                                   self.ellipsis and "*" or "",
+                                   self.name)
 
 class LiteralMatcher(Matcher):
     # TODO: implement this
@@ -152,7 +152,8 @@ class ConstantMatcher(Matcher):
             raise MatchError("%s: can not match %s" % (self, expr))
         return expr.rest
     def __str__(self):
-        return "<ConstantMatcher value=%s, ellipsis=%s>" % (self.value, self.ellipsis)
+        return "<ConstantMatcher%s value=%s>" % (self.ellipsis and "*" or "",
+                                                 self.value)
 
 class VariableMatcher(Matcher):
     """\
@@ -245,6 +246,15 @@ class SequenceMatcher(Matcher):
         self.sequence.append(matcher)
 
     def __str__(self):
-        return "<SequenceMatcher sequence=[%s], ellipsis=%s>" % (', '.join([m.__str__()
-                                                                            for m in self.sequence]),
-                                                                 self.ellipsis)
+        return "<SequenceMatcher%s sequence=[%s]>" % (self.ellipsis and "*" or "",
+                                                      ', '.join([m.__str__()
+                                                                            for m in self.sequence]))
+
+########################################
+# Template expanding
+########################################
+class Template(object):
+    "The base class for all template."
+    def __init__(self):
+        self.ellipsis = False
+    
