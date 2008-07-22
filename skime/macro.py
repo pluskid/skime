@@ -277,7 +277,7 @@ class ConstantTemplate(Template):
         Template.__init__(self)
         self.value = value
 
-    def expand(self, md, nflatten=0):
+    def expand(self, md, idx=[]):
         return (self.value, )
     
     def __str__(self):
@@ -290,9 +290,12 @@ class VariableTemplate(Template):
         Template.__init__(self)
         self.name = name
 
-    def expand(self, md, nflatten=0):
-        val = [md[self.name]]
-        nflatten += self.nflatten
+    def expand(self, md, idx=[]):
+        val = md.get(self.name, Ellipsis())
+        for i, _ in idx:
+            val = val[i]
+        nflatten = self.nflatten
+        val = [val]
         while nflatten > 0:
             val = self.flatten(val)
             nflatten -= 1
@@ -314,23 +317,73 @@ class SequenceTemplate(Template):
     "Template that aggregate a sequence of sub-templates."
     default_tail = ConstantTemplate(None)
     
-    def __init__(self, *tmpls):
+    def __init__(self):
         Template.__init__(self)
-        self.sequence = list(tmpls)
+        self.sequence = []
         self.tail = SequenceTemplate.default_tail
 
+        self.ellipsis_names = []
+        self.container = None
+
     def add_tmpl(self, tmpl):
+        self.calc_ellipsis_names(tmpl)
         self.sequence.append(tmpl)
 
-    def expand(self, md, nflatten=0):
-        res = []
-        for tmpl in self.sequence:
-            res.extend(tmpl.expand(md, 0))
-        rest = self.tail.expand(md, 0)[0]
+    def set_tail(self, tmpl):
+        """\
+        Set the tail template of the sequence. It is normally
+        default to ConstantTemplate(None).
+        """
+        self.calc_ellipsis_names(tmpl)
+        self.tail = tmpl
 
-        for x in res:
-            rest = pair(x, rest)
-        return rest
+    def add_ellipsis_name(self, name):
+        self.ellipsis_names.append(name)
+        if self.container is not None:
+            self.container.add_ellipsis_name(name)
+        
+    def calc_ellipsis_names(self, tmpl):
+        if isinstance(tmpl, VariableTemplate) and \
+           tmpl.nflatten > 0:
+            self.add_ellipsis_name(tmpl.name)
+        elif isinstance(tmpl, SequenceTemplate):
+            tmpl.container = self
+
+    def expand(self, md, idx=[]):
+        return self.expand_flatten(md, idx, self.nflatten)
+
+    def expand_flatten(self, md, idx, flatten):
+        if flatten == 0:
+            return self.expand_0(md, idx)
+        length = 0
+        for name in self.ellipsis_names:
+            var = md.get(name, Ellipsis())
+            for i, _ in idx:
+                var = var[i]
+            if not isinstance(var, Ellipsis):
+                raise SyntaxError("Too many ellipsis after variable %s" % name)
+            if length == 0 or length == len(var):
+                length = len(var)
+            else:
+                raise SyntaxError("Incompatible ellipsis match counts for variable %s" % name)
+        if length > 0:
+            idx.append([0, length])
+            res = []
+            for i in range(length):
+                idx[-1][0] = i
+                res.extend(self.expand_flatten(md, idx, flatten-1))
+            idx.pop()
+        else:
+            return []
+
+    def expand_0(self, md, idx):
+        elems = []
+        for tmpl in self.sequence:
+            elems.extend(tmpl.expand(md, idx))
+        rest = self.tail.expand(md, idx)[0]
+        for elem in reversed(elems):
+            rest = pair(elem, rest)
+        return [rest]
         
     def __str__(self):
         return "<%s sequence=[%s], tail=%s>" % (self.class_name(),
