@@ -25,8 +25,9 @@ class SyntaxRule(object):
         if rule.rest.rest is not None:
             raise SyntaxError("Extra expressions in syntax rule: %s" % rule)
         self.variables = {}
-        self.matcher = self.compile_pattern(rule.first, literals)
-        self.template = rule.rest.first
+        self.literals = literals
+        self.matcher = self.compile_pattern(rule.first)
+        self.template = self.compile_template(rule.rest.first)
 
     def match(self, env, form):
         md = MatchDict()
@@ -36,7 +37,10 @@ class SyntaxRule(object):
         self.matcher.match(pair(form.rest, None), md)
         return md
 
-    def compile_pattern(self, pattern, literals):
+    ########################################
+    # Pattern compiling
+    ########################################
+    def compile_pattern(self, pattern):
         """\
         Compile pattern into a matcher.
         """
@@ -47,25 +51,25 @@ class SyntaxRule(object):
         # ignored
         pattern = pattern.rest
 
-        return self._compile_pattern(pattern, literals)
+        return self._compile_pattern(pattern)
 
-    def _compile_pattern(self, pat, literals):
+    def _compile_pattern(self, pat):
         if isinstance(pat, pair):
             mt = SequenceMatcher()
             while isinstance(pat, pair):
-                submt = self._compile_pattern(pat.first, literals)
+                submt = self._compile_pattern(pat.first)
                 mt.add_matcher(submt)
                 pat = pat.rest
                 if isinstance(pat, pair) and pat.first == sym('...'):
                     submt.ellipsis = True
                     pat = pat.rest
             if pat is not None:
-                submt = self._compile_pattern(pat, literals)
+                submt = self._compile_pattern(pat)
                 mt.add_matcher(RestMatcher(submt))
             return mt
 
         if isinstance(pat, sym):
-            if pat in literals:
+            if pat in self.literals:
                 return LiteralMatcher(pat.name)
             if pat == sym('_'):
                 return UnderscopeMatcher()
@@ -75,7 +79,28 @@ class SyntaxRule(object):
             return VariableMatcher(pat.name)
 
         return ConstantMatcher(pat)
-    
+
+    ########################################
+    # Template compiling
+    ########################################
+    def compile_template(self, expr):
+        if isinstance(expr, pair):
+            tmpl = SequenceTemplate()
+            while isinstance(expr, pair):
+                sub_tmpl = self.compile_template(expr.first)
+                expr = expr.rest
+                while isinstance(expr, pair) and expr.first == sym('...'):
+                    sub_tmpl.nflatten += 1
+                    expr = expr.rest
+                tmpl.add_tmpl(sub_tmpl)
+            if expr is not None:
+                sub_tmpl = self.compile_template(expr)
+                tmpl.set_tail(sub_tmpl)
+            return tmpl
+        if isinstance(expr, sym) and self.variables.get(expr.name) is not None:
+            return VariableTemplate(expr.name)
+        return ConstantTemplate(expr)
+            
 
 ########################################
 # Pattern matching
@@ -271,6 +296,10 @@ class Template(object):
         "Expand the template under match dict md."
         raise SyntaxError("Attempt to expand an abstract template.")
 
+class LiteralTemplate(Template):
+    # TODO: implement this
+    pass
+
 class ConstantTemplate(Template):
     "Template that will expand to a constant."
     def __init__(self, value):
@@ -323,7 +352,6 @@ class SequenceTemplate(Template):
         self.tail = SequenceTemplate.default_tail
 
         self.ellipsis_names = []
-        self.container = None
 
     def add_tmpl(self, tmpl):
         self.calc_ellipsis_names(tmpl)
@@ -337,17 +365,12 @@ class SequenceTemplate(Template):
         self.calc_ellipsis_names(tmpl)
         self.tail = tmpl
 
-    def add_ellipsis_name(self, name):
-        self.ellipsis_names.append(name)
-        if self.container is not None:
-            self.container.add_ellipsis_name(name)
-        
     def calc_ellipsis_names(self, tmpl):
         if isinstance(tmpl, VariableTemplate) and \
            tmpl.nflatten > 0:
-            self.add_ellipsis_name(tmpl.name)
+            self.ellipsis_names.append(tmpl.name)
         elif isinstance(tmpl, SequenceTemplate):
-            tmpl.container = self
+            self.ellipsis_names.extend(tmpl.ellipsis_names)
 
     def expand(self, md, idx=[]):
         return self.expand_flatten(md, idx, self.nflatten)
