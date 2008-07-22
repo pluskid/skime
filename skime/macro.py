@@ -328,6 +328,8 @@ class VariableTemplate(Template):
         while nflatten > 0:
             val = self.flatten(val)
             nflatten -= 1
+        if len(val) > 0 and isinstance(val[0], Ellipsis):
+            raise SyntaxError("Ellipsis after variable %s is less than expected." % self.name)
         return val
 
     def flatten(self, val):
@@ -366,8 +368,7 @@ class SequenceTemplate(Template):
         self.tail = tmpl
 
     def calc_ellipsis_names(self, tmpl):
-        if isinstance(tmpl, VariableTemplate) and \
-           tmpl.nflatten > 0:
+        if isinstance(tmpl, VariableTemplate):
             self.ellipsis_names.append(tmpl.name)
         elif isinstance(tmpl, SequenceTemplate):
             self.ellipsis_names.extend(tmpl.ellipsis_names)
