@@ -292,7 +292,7 @@ class VariableTemplate(Template):
 
     def expand(self, md, idx=[]):
         val = md.get(self.name, Ellipsis())
-        for i, _ in idx:
+        for i in idx:
             val = val[i]
         nflatten = self.nflatten
         val = [val]
@@ -358,7 +358,7 @@ class SequenceTemplate(Template):
         length = 0
         for name in self.ellipsis_names:
             var = md.get(name, Ellipsis())
-            for i, _ in idx:
+            for i in idx:
                 var = var[i]
             if not isinstance(var, Ellipsis):
                 raise SyntaxError("Too many ellipsis after variable %s" % name)
@@ -367,14 +367,15 @@ class SequenceTemplate(Template):
             else:
                 raise SyntaxError("Incompatible ellipsis match counts for variable %s" % name)
         if length > 0:
-            idx.append([0, length])
+            idx.append(0)
             res = []
             for i in range(length):
-                idx[-1][0] = i
+                idx[-1] = i
                 res.extend(self.expand_flatten(md, idx, flatten-1))
             idx.pop()
+            return res
         else:
-            return []
+            return ()
 
     def expand_0(self, md, idx):
         elems = []
