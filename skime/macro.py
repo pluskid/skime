@@ -75,6 +75,7 @@ class SyntaxRule(object):
             return VariableMatcher(pat.name)
 
         return ConstantMatcher(pat)
+    
 
 ########################################
 # Pattern matching
@@ -100,6 +101,7 @@ class Ellipsis(list):
         list.__init__(self, value)
     def __repr__(self):
         return "<Ellipsis %s>" % list.__repr__(self)
+            
 
 class EllipsisMatchDict(dict):
     """\
@@ -120,8 +122,12 @@ class EllipsisMatchDict(dict):
 class Matcher(object):
     "The base class for all matchers."
     def __init__(self, name):
-        self.name = name
         self.ellipsis = False
+        self.name = name
+
+    def class_name(self):
+        return "%s%s" % (self.__class__.__name__,
+                         self.ellipsis and "*" or "")
 
     def match(self, expr, match_dict):
         """\
@@ -131,9 +137,7 @@ class Matcher(object):
         raise MatchError("%s: match not implemented" % self)
 
     def __str__(self):
-        return '<%s%s name=%s>' % (self.__class__.__name__,
-                                   self.ellipsis and "*" or "",
-                                   self.name)
+        return '<%s name=%s>' % (self.class_name(), self.name)
 
 class LiteralMatcher(Matcher):
     # TODO: implement this
@@ -152,8 +156,7 @@ class ConstantMatcher(Matcher):
             raise MatchError("%s: can not match %s" % (self, expr))
         return expr.rest
     def __str__(self):
-        return "<ConstantMatcher%s value=%s>" % (self.ellipsis and "*" or "",
-                                                 self.value)
+        return "<%s value=%s>" % (self.class_name(), self.value)
 
 class VariableMatcher(Matcher):
     """\
@@ -246,15 +249,91 @@ class SequenceMatcher(Matcher):
         self.sequence.append(matcher)
 
     def __str__(self):
-        return "<SequenceMatcher%s sequence=[%s]>" % (self.ellipsis and "*" or "",
-                                                      ', '.join([m.__str__()
-                                                                            for m in self.sequence]))
+        return "<%s sequence=[%s]>" % (self.class_name(),
+                                       ', '.join([m.__str__()
+                                                  for m in self.sequence]))
 
 ########################################
 # Template expanding
 ########################################
+class TemplateError(Exception):
+    pass
+    
 class Template(object):
     "The base class for all template."
     def __init__(self):
-        self.ellipsis = False
+        self.nflatten = 0
+        
+    def class_name(self):
+        return self.__class__.__name__
     
+    def expand(self, md, nflatten=0):
+        "Expand the template under match dict md."
+        raise SyntaxError("Attempt to expand an abstract template.")
+
+class ConstantTemplate(Template):
+    "Template that will expand to a constant."
+    def __init__(self, value):
+        Template.__init__(self)
+        self.value = value
+
+    def expand(self, md, nflatten=0):
+        return (self.value, )
+    
+    def __str__(self):
+        return "<%s value=%s>" % (self.class_name(), self.value)
+
+
+class VariableTemplate(Template):
+    "Template that reference to a macro variable."
+    def __init__(self, name):
+        Template.__init__(self)
+        self.name = name
+
+    def expand(self, md, nflatten=0):
+        val = [md[self.name]]
+        nflatten += self.nflatten
+        while nflatten > 0:
+            val = self.flatten(val)
+            nflatten -= 1
+        return val
+
+    def flatten(self, val):
+        "Flatten ellipsis."
+        res = []
+        for x in val:
+            if not isinstance(x, Ellipsis):
+                raise SyntaxError("Too many ellipsis for variable %s" % self.name)
+            res.extend(x)
+        return res
+
+    def __str__(self):
+        return "<%s name=%s>" % (self.class_name(), self.name)
+
+class SequenceTemplate(Template):
+    "Template that aggregate a sequence of sub-templates."
+    default_tail = ConstantTemplate(None)
+    
+    def __init__(self, *tmpls):
+        Template.__init__(self)
+        self.sequence = list(tmpls)
+        self.tail = SequenceTemplate.default_tail
+
+    def add_tmpl(self, tmpl):
+        self.sequence.append(tmpl)
+
+    def expand(self, md, nflatten=0):
+        res = []
+        for tmpl in self.sequence:
+            res.extend(tmpl.expand(md, 0))
+        rest = self.tail.expand(md, 0)[0]
+
+        for x in res:
+            rest = pair(x, rest)
+        return rest
+        
+    def __str__(self):
+        return "<%s sequence=[%s], tail=%s>" % (self.class_name(),
+                                                ', '.join([tmpl.__str__()
+                                                           for tmpl in self.sequence]),
+                                                self.tail)
