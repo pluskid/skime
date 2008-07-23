@@ -2,6 +2,7 @@ from types          import NoneType
                       
 from ..types.symbol import Symbol as sym
 from ..types.pair   import Pair as pair
+from ..macro        import Macro
                      
 from ..errors       import CompileError
 from ..errors       import SyntaxError
@@ -36,6 +37,15 @@ class Compiler(object):
     ########################################
     # Helper functions
     ########################################
+    def get_macro(self, env, name):
+        if not isinstance(name, sym):
+            return None
+        loc = env.lookup_location(name.name)
+        val = loc.env.read_local(loc.idx)
+        if isinstance(val, Macro):
+            return val
+        return None
+    
     def self_evaluating(self, expr):
         for t in [int, long, complex, float, str, unicode, bool, NoneType]:
             if isinstance(expr, t):
@@ -96,6 +106,13 @@ class Compiler(object):
             if routine is not None:
                 routine(bdr, expr.rest, keep=keep, tail=tail)
             else:
+                macro = self.get_macro(bdr.env, expr.first)
+                while macro is not None:
+                    expr = macro.transform(expr)
+                    if not isinstance(expr, pair):
+                        return self.generate_expr(bdr, expr, keep=keep, tail=tail)
+                    macro = self.get_macro(bdr.env, expr.first)
+                
                 argc = 0
                 arg  = expr.rest
                 while arg is not None:

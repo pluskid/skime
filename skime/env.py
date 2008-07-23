@@ -1,3 +1,14 @@
+class Location(object):
+    """\
+    A location of a variable, including the Environment object and
+    the index in it.
+    """
+    __slots__ = ('env', 'idx')
+    
+    def __init__(self, env, idx):
+        self.env = env
+        self.idx = idx
+
 class Environment(object):
     """\
     An environment object holds the local variables of a scope
@@ -75,3 +86,15 @@ class Environment(object):
         """
         return self.locals_name[idx]
 
+    def lookup_location(self, name):
+        """\
+        Find the location of variable with given name. Recursively
+        find in parent when necessary.
+        """
+        env = self
+        while env is not None:
+            idx = env.find_local(name)
+            if idx is not None:
+                return Location(env, idx)
+            env = env.parent
+        return None
