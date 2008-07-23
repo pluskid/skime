@@ -22,6 +22,8 @@ class Compiler(object):
     sym_quote = sym("quote")
     sym_or = sym("or")
     sym_and = sym("and")
+    sym_define_syntax = sym("define-syntax")
+    sym_syntax_rules = sym("syntax-rules")
     
     def __init__(self):
         self.label_seed = 0
@@ -87,7 +89,8 @@ class Compiler(object):
             Compiler.sym_set_x: self.generate_set_x,
             Compiler.sym_quote: self.generate_quote,
             Compiler.sym_or: self.generate_or,
-            Compiler.sym_and: self.generate_and
+            Compiler.sym_and: self.generate_and,
+            Compiler.sym_define_syntax: self.generate_define_syntax
             }
         if self.self_evaluating(expr):
             if keep:
@@ -324,3 +327,26 @@ class Compiler(object):
                 bdr.emit('ret')
                 
         bdr.def_label(lbl_end)
+
+    def generate_define_syntax(self, bdr, expr, keep=True, tail=False):
+        if not isinstance(expr, pair):
+            raise SyntaxError("Invalid define-syntax expression, expecting macro keyword")
+        name = expr.first
+        if not isinstance(name, sym):
+            raise SyntaxError("Expecting macro keyword as a symbol, but got %s" % name)
+        expr = expr.rest
+        if not isinstance(expr, pair) or Compiler.sym_syntax_rules != expr.first:
+            raise SyntaxError("Expecting syntax-rules, but got %s" % expr)
+        
+        # define local before constructing the macro, so that recursive macro
+        # can be supported
+        idx = bdr.def_local(name.name)
+        macro = Macro(bdr.env, expr.rest)
+        bdr.env.assign_local(idx, macro)
+
+        if keep:
+            # macro object will not be available at runtime, the value of
+            # 'define-syntax' expression is None
+            bdr.emit('push_nil')
+            if tail:
+                bdr.emit('ret')

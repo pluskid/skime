@@ -60,7 +60,7 @@ class Builder(object):
 
     def def_local(self, name):
         "Define a local variable."
-        self.env.alloc_local(name)
+        return self.env.alloc_local(name)
 
     def def_label(self, name):
         "Define a label at current ip."
