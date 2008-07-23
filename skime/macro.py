@@ -7,16 +7,31 @@ class Macro(object):
         try:
             # Process literals
             literals = body.first
+            lit = []
+            while isinstance(literals, pair):
+                lit.append(literals.first)
+                literals = literals.rest
+            if literals is not None:
+                raise SyntaxError("Invalid syntax rule format: literals should be a proper list.")
 
             self.rules = []
             # Process syntax rules
             rules = body.rest
             while rules is not None:
                 rule = rules.first
-                self.rules.append(SyntaxRule(rule))
+                self.rules.append(SyntaxRule(rule, lit))
                 rules = rules.rest
         except AttributeError:
             raise SyntaxError("Invalid syntax for syntax-rules form")
+
+    def tranform(self, env, form):
+        for rule in self.rules:
+            try:
+                md = rule.match(env, form)
+                return rule.expand(env, md)
+            except MatchError:
+                pass
+        raise SyntaxError("Can not find syntax rule to match the form %s" % form)
 
 class SyntaxRule(object):
     def __init__(self, rule, literals):
@@ -36,6 +51,9 @@ class SyntaxRule(object):
         # skip the first element, which is the macro keyword
         self.matcher.match(pair(form.rest, None), md)
         return md
+
+    def expand(self, env, md):
+        return self.template.expand(md, [])[0]
 
     ########################################
     # Pattern compiling
@@ -281,9 +299,6 @@ class SequenceMatcher(Matcher):
 ########################################
 # Template expanding
 ########################################
-class TemplateError(Exception):
-    pass
-    
 class Template(object):
     "The base class for all template."
     def __init__(self):
