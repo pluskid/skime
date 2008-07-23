@@ -24,7 +24,7 @@ class Macro(object):
         except AttributeError:
             raise SyntaxError("Invalid syntax for syntax-rules form")
 
-    def tranform(self, env, form):
+    def transform(self, env, form):
         for rule in self.rules:
             try:
                 md = rule.match(env, form)
@@ -194,8 +194,14 @@ class ConstantMatcher(Matcher):
         Matcher.__init__(self, None)
         self.value = value
     def match(self, expr, match_dict):
+        if self.ellipsis:
+            while isinstance(expr, pair) and \
+                  expr.first == self.value:
+                expr = expr.rest
+            return expr
+        
         if not isinstance(expr, pair) or \
-           pair.first != self.value:
+           expr.first != self.value:
             raise MatchError("%s: can not match %s" % (self, expr))
         return expr.rest
     def __str__(self):
