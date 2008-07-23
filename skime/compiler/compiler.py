@@ -111,7 +111,7 @@ class Compiler(object):
             else:
                 macro = self.get_macro(bdr.env, expr.first)
                 while macro is not None:
-                    expr = macro.transform(expr)
+                    expr = macro.transform(bdr.env, expr)
                     if not isinstance(expr, pair):
                         return self.generate_expr(bdr, expr, keep=keep, tail=tail)
                     macro = self.get_macro(bdr.env, expr.first)
@@ -335,17 +335,21 @@ class Compiler(object):
         if not isinstance(name, sym):
             raise SyntaxError("Expecting macro keyword as a symbol, but got %s" % name)
         expr = expr.rest
-        if not isinstance(expr, pair) or Compiler.sym_syntax_rules != expr.first:
-            raise SyntaxError("Expecting syntax-rules, but got %s" % expr)
+        if not isinstance(expr, pair) or \
+               not isinstance(expr.first, pair) or \
+               Compiler.sym_syntax_rules != expr.first.first:
+            raise SyntaxError("Expecting syntax-rules, but got %s" % expr.first)
+        if expr.rest is not None:
+            raise SyntaxError("Extra expressions in define-syntax: %s" % expr.rest)
         
         # define local before constructing the macro, so that recursive macro
         # can be supported
         idx = bdr.def_local(name.name)
-        macro = Macro(bdr.env, expr.rest)
+        macro = Macro(bdr.env, expr.first.rest)
         bdr.env.assign_local(idx, macro)
 
         if keep:
-            # macro object will not be available at runtime, the value of
+            # macro object is generally not available at runtime, the value of
             # 'define-syntax' expression is None
             bdr.emit('push_nil')
             if tail:
