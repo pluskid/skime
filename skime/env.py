@@ -15,6 +15,16 @@ class Location(object):
                self.idx == other.idx and \
                self.env is other.env
 
+    # Python rocks! Just Keep It Simple and verboSe.
+    # When you defined __eq__, please also define __ne__ or
+    # else != will compare by the memory address of your
+    # objects
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __str__(self):
+        return '<Location idx=%s, env=%s>' % (self.idx, self.env)
+
 class Environment(object):
     """\
     An environment object holds the local variables of a scope

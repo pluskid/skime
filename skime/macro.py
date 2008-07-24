@@ -193,12 +193,29 @@ class LiteralMatcher(Matcher):
         self.loc = self.get_loc(env, name)
 
     def match(self, env, expr, match_dict):
-        pass
+        if self.ellipsis:
+            try:
+                self.match_literal(env, expr)
+                expr = expr.rest
+            except MatchError:
+                pass
+            return expr
+
+        self.match_literal(env, expr)   # may raise MatchError
+        return expr.rest
 
     def get_loc(self, env, name):
         if env is None:
             return None
         return env.lookup_location(name)
+
+    def match_literal(self, env, expr):
+        if not isinstance(expr, pair) or \
+           not isinstance(expr.first, sym):
+            raise MatchError("%s: can not match %s" % (self, expr))
+        loc = self.get_loc(env, expr.first.name)
+        if self.loc != loc:
+            raise MatchError("%s: can not match %s with different lexical binding" % (self, expr.first.name))
 
 class ConstantMatcher(Matcher):
     """\
