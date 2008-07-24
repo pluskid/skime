@@ -19,7 +19,7 @@ class Macro(object):
             rules = body.rest
             while rules is not None:
                 rule = rules.first
-                self.rules.append(SyntaxRule(rule, lit))
+                self.rules.append(SyntaxRule(rule, lit, env))
                 rules = rules.rest
         except AttributeError:
             raise SyntaxError("Invalid syntax for syntax-rules form")
@@ -34,11 +34,12 @@ class Macro(object):
         raise SyntaxError("Can not find syntax rule to match the form %s" % form)
 
 class SyntaxRule(object):
-    def __init__(self, rule, literals):
+    def __init__(self, rule, literals, env):
         if not isinstance(rule, pair) or not isinstance(rule.rest, pair):
             raise SyntaxError("Expecting (pattern template) for syntax rule, but got %s" % rule)
         if rule.rest.rest is not None:
             raise SyntaxError("Extra expressions in syntax rule: %s" % rule)
+        self.env = env
         self.variables = {}
         self.literals = literals
         self.matcher = self.compile_pattern(rule.first)
@@ -49,7 +50,7 @@ class SyntaxRule(object):
         if not isinstance(form, pair):
             raise SyntaxError("Invalid macro matching against the form %s" % form)
         # skip the first element, which is the macro keyword
-        self.matcher.match(pair(form.rest, None), md)
+        self.matcher.match(env, pair(form.rest, None), md)
         return md
 
     def expand(self, env, md):
@@ -88,7 +89,7 @@ class SyntaxRule(object):
 
         if isinstance(pat, sym):
             if pat in self.literals:
-                return LiteralMatcher(pat.name)
+                return LiteralMatcher(self.env, pat.name)
             if pat == sym('_'):
                 return UnderscopeMatcher()
             if self.variables.get(pat.name) is not None:
@@ -172,7 +173,7 @@ class Matcher(object):
         return "%s%s" % (self.__class__.__name__,
                          self.ellipsis and "*" or "")
 
-    def match(self, expr, match_dict):
+    def match(self, env, expr, match_dict):
         """\
         Match against expr and return the remaining expression.
         If can not match, raise MatchError.
@@ -183,8 +184,21 @@ class Matcher(object):
         return '<%s name=%s>' % (self.class_name(), self.name)
 
 class LiteralMatcher(Matcher):
-    # TODO: implement this
-    pass
+    """\
+    A LiteralMatcher only matches the symbol with the same lexical binding
+    or both has no binding.
+    """
+    def __init__(self, env, name):
+        Matcher.__init__(self, name)
+        self.loc = self.get_loc(env, name)
+
+    def match(self, env, expr, match_dict):
+        pass
+
+    def get_loc(self, env, name):
+        if env is None:
+            return None
+        return env.lookup_location(name)
 
 class ConstantMatcher(Matcher):
     """\
@@ -193,7 +207,7 @@ class ConstantMatcher(Matcher):
     def __init__(self, value):
         Matcher.__init__(self, None)
         self.value = value
-    def match(self, expr, match_dict):
+    def match(self, env, expr, match_dict):
         if self.ellipsis:
             while isinstance(expr, pair) and \
                   expr.first == self.value:
@@ -211,7 +225,7 @@ class VariableMatcher(Matcher):
     """\
     A variable match any single expression.
     """
-    def match(self, expr, match_dict):
+    def match(self, env, expr, match_dict):
         if self.ellipsis:
             result = Ellipsis()
             while isinstance(expr, pair):
@@ -234,7 +248,7 @@ class UnderscopeMatcher(Matcher):
     """
     def __init__(self):
         Matcher.__init__(self, '_')
-    def match(self, expr, match_dict):
+    def match(self, env, expr, match_dict):
         if self.ellipsis:
             while isinstance(expr, pair):
                 expr = expr.rest
@@ -254,8 +268,8 @@ class RestMatcher(Matcher):
     """
     def __init__(self, matcher):
         self.matcher = matcher
-    def match(self, expr, match_dict):
-        return self.matcher.match(pair(expr, None), match_dict)
+    def match(self, env, expr, match_dict):
+        return self.matcher.match(env, pair(expr, None), match_dict)
     def __str__(self):
         return "<RestMatcher: matcher=%s>" % self.matcher
 
@@ -267,12 +281,12 @@ class SequenceMatcher(Matcher):
         Matcher.__init__(self, None)
         self.sequence = []
 
-    def match(self, expr, match_dict):
+    def match(self, env, expr, match_dict):
         if self.ellipsis:
             md = EllipsisMatchDict()
             try:
                 while isinstance(expr, pair):
-                    self.match_sequence(expr, md)
+                    self.match_sequence(env, expr, md)
                     expr = expr.rest
             except MatchError:
                 pass
@@ -282,13 +296,13 @@ class SequenceMatcher(Matcher):
         else:
             if not isinstance(expr, pair):
                 raise MatchError("%s: unable to match %s" % (self, expr))
-            self.match_sequence(expr, match_dict)
+            self.match_sequence(env, expr, match_dict)
             return expr.rest
 
-    def match_sequence(self, expr, match_dict):
+    def match_sequence(self, env, expr, match_dict):
         expr = expr.first
         for m in self.sequence:
-            expr = m.match(expr, match_dict)
+            expr = m.match(env, expr, match_dict)
         if expr is not None:
             # not matched expressions
             raise MatchError("%s: ramaining expressions not matched: %s" % (self, expr))

@@ -9,6 +9,12 @@ class Location(object):
         self.env = env
         self.idx = idx
 
+    def __eq__(self, other):
+        "Test if two Location object refer to the same location."
+        return isinstance(other, Location) and \
+               self.idx == other.idx and \
+               self.env is other.env
+
 class Environment(object):
     """\
     An environment object holds the local variables of a scope
