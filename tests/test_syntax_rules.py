@@ -87,3 +87,10 @@ class TestSyntaxRules(object):
         assert_raises(SyntaxError, trans, m, "(_ (1) (3 4))")
         assert_raises(SyntaxError, trans, m, "(_ (1 2) (3))")
 
+    # R5RS doesn't require this, but we support it
+    def test_ellipsis_with_improper_list(self):
+        m = macro("(() ((_ a ... . b) b))")
+        assert trans(m, "(_ . 6)") == 6
+        assert trans(m, "(_ 5 . 6)") == 6
+        assert trans(m, "(_ 5 6 . 6)") == 6
+        

@@ -41,8 +41,7 @@ class SyntaxRule(object):
             raise SyntaxError("Extra expressions in syntax rule: %s" % rule)
         self.env = env
         self.variables = {}
-        self.literals = literals
-        self.matcher = self.compile_pattern(rule.first)
+        self.matcher = self.compile_pattern(rule.first, literals)
         self.template = self.compile_template(rule.rest.first)
 
     def match(self, env, form):
@@ -59,7 +58,7 @@ class SyntaxRule(object):
     ########################################
     # Pattern compiling
     ########################################
-    def compile_pattern(self, pattern):
+    def compile_pattern(self, pattern, literals):
         """\
         Compile pattern into a matcher.
         """
@@ -70,25 +69,25 @@ class SyntaxRule(object):
         # ignored
         pattern = pattern.rest
 
-        return self._compile_pattern(pattern)
+        return self._compile_pattern(pattern, literals)
 
-    def _compile_pattern(self, pat):
+    def _compile_pattern(self, pat, literals):
         if isinstance(pat, pair):
             mt = SequenceMatcher()
             while isinstance(pat, pair):
-                submt = self._compile_pattern(pat.first)
+                submt = self._compile_pattern(pat.first, literals)
                 mt.add_matcher(submt)
                 pat = pat.rest
                 if isinstance(pat, pair) and pat.first == sym('...'):
                     submt.ellipsis = True
                     pat = pat.rest
             if pat is not None:
-                submt = self._compile_pattern(pat)
+                submt = self._compile_pattern(pat, literals)
                 mt.add_matcher(RestMatcher(submt))
             return mt
 
         if isinstance(pat, sym):
-            if pat in self.literals:
+            if pat in literals:
                 return LiteralMatcher(self.env, pat.name)
             if pat == sym('_'):
                 return UnderscopeMatcher()
@@ -195,8 +194,9 @@ class LiteralMatcher(Matcher):
     def match(self, env, expr, match_dict):
         if self.ellipsis:
             try:
-                self.match_literal(env, expr)
-                expr = expr.rest
+	    	while True:
+		    self.match_literal(env, expr)
+                    expr = expr.rest
             except MatchError:
                 pass
             return expr
@@ -248,8 +248,6 @@ class VariableMatcher(Matcher):
             while isinstance(expr, pair):
                 result.append(expr.first)
                 expr = expr.rest
-            if expr is not None:
-                raise MatchError("%s: matching against an improper list" % self)
         else:
             if not isinstance(expr, pair):
                 raise MatchError("%s: unable to match %s" % (self, expr))
@@ -269,8 +267,6 @@ class UnderscopeMatcher(Matcher):
         if self.ellipsis:
             while isinstance(expr, pair):
                 expr = expr.rest
-            if expr is not None:
-                raise MatchError("%s: matching against an improper list" % self)
         else:
             if not isinstance(expr, pair):
                 raise MatchError("%s: unable to match %s" % (self, expr))
@@ -336,6 +332,15 @@ class SequenceMatcher(Matcher):
 ########################################
 # Template expanding
 ########################################
+
+# There are the following kinds of templates:
+#  - symbol:
+#    - lexical binding: symbol referencing to the lexical binding where the macro is defined
+#    - macro variable symbol: will be replaced by the matched value
+#    - un-recognized symbol: will be renamed to avoid conflict
+#  - pair: expand recursively
+#  - other: expand as constant
+
 class Template(object):
     "The base class for all template."
     def __init__(self):
@@ -347,10 +352,6 @@ class Template(object):
     def expand(self, md, nflatten=0):
         "Expand the template under match dict md."
         raise SyntaxError("Attempt to expand an abstract template.")
-
-class LiteralTemplate(Template):
-    # TODO: implement this
-    pass
 
 class ConstantTemplate(Template):
     "Template that will expand to a constant."
