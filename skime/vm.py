@@ -4,28 +4,49 @@
 # Local variables are held in an Environment object, which are chained
 # through the lexical scope.
 
-from .ctx         import Context
-from .env         import Environment
-from .            import insns
-from .types.pair  import Pair
-from .proc        import Procedure
-from .prim        import Primitive, load_primitives
-from .insns       import run
-from .types.pair  import Pair as pair
+import os.path
 
-from .errors      import WrongArgType
+from .ctx               import Context
+from .env               import Environment
+from .                  import insns
+from .types.pair        import Pair
+from .proc              import Procedure
+from .prim              import Primitive, load_primitives
+from .insns             import run
+from .types.pair        import Pair as pair
+
+from .compiler.parser   import parse
+from .compiler.compiler import Compiler
+
+from .errors            import WrongArgType
 
 class VM(object):
 
     def __init__(self):
+        self.compiler = Compiler()
+        
         self.env = Environment()
         self.env.vm = self
         load_primitives(self.env)
 
         self.ctx = Context(None, self.env, None)
 
+        self.load(os.path.join(os.path.dirname(__file__),
+                               'scheme',
+                               'prim.scm'))
+
     def run(self, form):
         return form.eval(self.env, self)
+
+    def load(self, path):
+        io = open(path)
+        content = io.read()
+        io.close()
+
+        return self.eval_string("(begin %s)" % content)
+
+    def eval_string(self, script):
+        return self.run(self.compiler.compile(parse(script), self.env))
 
     def apply(self, proc, args):
         if isinstance(proc, Procedure):

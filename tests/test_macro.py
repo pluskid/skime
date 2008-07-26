@@ -66,5 +66,3 @@ class TestMacro(HelperVM):
           ((lambda (foo)
              (stx foo))
            100))""") == pair(100, 10)
-
-        
