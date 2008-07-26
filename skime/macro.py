@@ -54,7 +54,7 @@ class SyntaxRule(object):
         return md
 
     def expand(self, env, md):
-        return self.template.expand(md, [])[0]
+        return self.template.expand(env, md, [])[0]
 
     ########################################
     # Pattern compiling
@@ -333,6 +333,26 @@ class SequenceMatcher(Matcher):
 ########################################
 # Template expanding
 ########################################
+class DynamicClosure(object):
+    """\
+    A macro is evaluated in the lexical scope of the macro. However,
+    expressions captured by pattern variables should be evaluated
+    in the scope where the macro is expanded. This object is used
+    to wrap the expression and carry with it its dynamic scope.
+    """
+    def __init__(self, env, expr):
+        self.lexical_parent = env
+        self.expression = expr
+
+    def __eq__(self, o):
+        return isinstance(o, DynamicClosure) and \
+               self.lexical_parent == o.lexical_parent and \
+               self.expression == o.expression
+
+def make_dynamic_closure(env, expr):
+    if isinstance(expr, DynamicClosure):
+        return expr
+    return DynamicClosure(env, expr)
 
 # There are the following kinds of templates:
 #  - symbol:
@@ -350,7 +370,7 @@ class Template(object):
     def class_name(self):
         return self.__class__.__name__
     
-    def expand(self, md, nflatten=0):
+    def expand(self, env, md, nflatten=0):
         "Expand the template under match dict md."
         raise SyntaxError("Attempt to expand an abstract template.")
 
@@ -360,7 +380,7 @@ class ConstantTemplate(Template):
         Template.__init__(self)
         self.value = value
 
-    def expand(self, md, idx=[]):
+    def expand(self, env, md, idx=[]):
         return (self.value, )
     
     def __str__(self):
@@ -373,7 +393,7 @@ class VariableTemplate(Template):
         Template.__init__(self)
         self.name = name
 
-    def expand(self, md, idx=[]):
+    def expand(self, env, md, idx=[]):
         val = md.get(self.name, Ellipsis())
         for i in idx:
             val = val[i]
@@ -384,7 +404,7 @@ class VariableTemplate(Template):
             nflatten -= 1
         if len(val) > 0 and isinstance(val[0], Ellipsis):
             raise SyntaxError("Ellipsis after variable %s is less than expected." % self.name)
-        return val
+        return [make_dynamic_closure(env, v) for v in val]
 
     def flatten(self, val):
         "Flatten ellipsis."
@@ -427,12 +447,12 @@ class SequenceTemplate(Template):
         elif isinstance(tmpl, SequenceTemplate):
             self.ellipsis_names.extend(tmpl.ellipsis_names)
 
-    def expand(self, md, idx=[]):
-        return self.expand_flatten(md, idx, self.nflatten)
+    def expand(self, env, md, idx=[]):
+        return self.expand_flatten(env, md, idx, self.nflatten)
 
-    def expand_flatten(self, md, idx, flatten):
+    def expand_flatten(self, env, md, idx, flatten):
         if flatten == 0:
-            return self.expand_0(md, idx)
+            return self.expand_0(env, md, idx)
         length = 0
         for name in self.ellipsis_names:
             var = md.get(name, Ellipsis())
@@ -449,17 +469,17 @@ class SequenceTemplate(Template):
             res = []
             for i in range(length):
                 idx[-1] = i
-                res.extend(self.expand_flatten(md, idx, flatten-1))
+                res.extend(self.expand_flatten(env, md, idx, flatten-1))
             idx.pop()
             return res
         else:
             return ()
 
-    def expand_0(self, md, idx):
+    def expand_0(self, env, md, idx):
         elems = []
         for tmpl in self.sequence:
-            elems.extend(tmpl.expand(md, idx))
-        rest = self.tail.expand(md, idx)[0]
+            elems.extend(tmpl.expand(env, md, idx))
+        rest = self.tail.expand(env, md, idx)[0]
         for elem in reversed(elems):
             rest = pair(elem, rest)
         return [rest]

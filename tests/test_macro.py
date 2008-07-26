@@ -38,7 +38,7 @@ class TestMacro(HelperVM):
         (begin
           (define-syntax my-add (syntax-rules ()
                                   ((_ a b) (+ a b))))
-          (define (my-proc)
-            (my-add 1 2))
+          (define (my-proc x)
+            (my-add x x))
 
-          (my-proc))""") == 3
+          (my-proc 5))""") == 10
