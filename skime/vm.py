@@ -25,7 +25,7 @@ class VM(object):
         self.ctx = Context(None, self.env, None)
 
     def run(self, form):
-        return form.eval(self.env)
+        return form.eval(self.env, self)
 
     def apply(self, proc, args):
         if isinstance(proc, Procedure):

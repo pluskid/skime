@@ -2,7 +2,7 @@ from types          import NoneType
                       
 from ..types.symbol import Symbol as sym
 from ..types.pair   import Pair as pair
-from ..macro        import Macro
+from ..macro        import Macro, DynamicClosure
                      
 from ..errors       import CompileError
 from ..errors       import SyntaxError
@@ -123,21 +123,9 @@ class Compiler(object):
                 macro = self.get_macro(bdr.env, expr.first)
                 transform_env = bdr.env
                 if macro is not None:
-                    while True:
-                        expr = macro.transform(transform_env, expr)
-                        transform_env = macro.lexical_parent
-                        if not isinstance(expr, pair):
-                            break
-                        else:
-                            new_macro = self.get_macro(macro.lexical_parent, expr.first)
-                            if new_macro is not None and \
-                               new_macro.lexical_parent == macro.lexical_parent:
-                                # we can expand several macro with the same lexical parent
-                                # at a time
-                                macro = new_macro
-                            else:
-                                break
-                    
+                    expr, dc_list = macro.transform(transform_env, expr)
+
+                    transform_env = macro.lexical_parent
                     macro_bdr = bdr.push_proc(parent_env=macro.lexical_parent)
                     self.generate_expr(macro_bdr, expr, keep=True, tail=True)
                     dist = self.calc_env_distance(macro.lexical_parent, bdr.env)
@@ -145,6 +133,15 @@ class Compiler(object):
                         bdr.emit('fix_lexical')
                     else:
                         bdr.emit('fix_lexical_depth', dist)
+
+                    # fix lexical parent of dynamic closures
+                    for dc in dc_list:
+                        bdr.emit('push_literal', dc)
+                        bdr.emit('fix_lexical_pop')
+                        form_bdr = Builder(bdr.env)
+                        self.generate_expr(form_bdr, dc.expression, keep=True, tail=False)
+                        dc.form = form_bdr.generate()
+                        
                 else:
                     arg  = expr.rest
                     while arg is not None:
@@ -160,6 +157,14 @@ class Compiler(object):
                     if not keep:
                         bdr.emit('pop')
 
+        elif isinstance(expr, DynamicClosure):
+            bdr.emit('push_literal', expr)
+            bdr.emit('dynamic_eval')
+            if not keep:
+                bdr.emit('pop')
+            elif tail:
+                bdr.emit('ret')
+            
         else:
             raise CompileError("Expecting atom or list, but got %s" % expr)
 

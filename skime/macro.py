@@ -54,7 +54,9 @@ class SyntaxRule(object):
         return md
 
     def expand(self, env, md):
-        return self.template.expand(env, md, [])[0]
+        dc_list = []
+        expr = self.template.expand(dc_list, env, md, [])[0]
+        return expr, dc_list
 
     ########################################
     # Pattern compiling
@@ -339,7 +341,14 @@ class DynamicClosure(object):
     expressions captured by pattern variables should be evaluated
     in the scope where the macro is expanded. This object is used
     to wrap the expression and carry with it its dynamic scope.
+
+    slots are:
+     - lexical_parent: the environment where the expression belongs to.
+     - expression: the expression wrapped.
+     - form: the compiled form of the expression.
     """
+    __slots__ = ('lexical_parent', 'expression', 'form')
+    
     def __init__(self, env, expr):
         self.lexical_parent = env
         self.expression = expr
@@ -349,10 +358,21 @@ class DynamicClosure(object):
                self.lexical_parent == o.lexical_parent and \
                self.expression == o.expression
 
-def make_dynamic_closure(env, expr):
+    def __str__(self):
+        return self.__repr__()
+    def __repr__(self):
+        return "<DynamicClosure expr=%s, env=%s>" % (self.expression,
+                                                     self.lexical_parent)
+
+def make_dynamic_closure(dc_list, env, expr):
     if isinstance(expr, DynamicClosure):
         return expr
-    return DynamicClosure(env, expr)
+    if isinstance(expr, sym) or isinstance(expr, pair):
+        dc = DynamicClosure(env, expr)
+        dc_list.append(dc)
+        return dc
+    # other thing are considered environment-indenpendent
+    return expr
 
 # There are the following kinds of templates:
 #  - symbol:
@@ -370,7 +390,7 @@ class Template(object):
     def class_name(self):
         return self.__class__.__name__
     
-    def expand(self, env, md, nflatten=0):
+    def expand(self, dc_list, env, md, nflatten=0):
         "Expand the template under match dict md."
         raise SyntaxError("Attempt to expand an abstract template.")
 
@@ -380,7 +400,7 @@ class ConstantTemplate(Template):
         Template.__init__(self)
         self.value = value
 
-    def expand(self, env, md, idx=[]):
+    def expand(self, dc_list, env, md, idx=[]):
         return (self.value, )
     
     def __str__(self):
@@ -393,7 +413,7 @@ class VariableTemplate(Template):
         Template.__init__(self)
         self.name = name
 
-    def expand(self, env, md, idx=[]):
+    def expand(self, dc_list, env, md, idx=[]):
         val = md.get(self.name, Ellipsis())
         for i in idx:
             val = val[i]
@@ -404,7 +424,7 @@ class VariableTemplate(Template):
             nflatten -= 1
         if len(val) > 0 and isinstance(val[0], Ellipsis):
             raise SyntaxError("Ellipsis after variable %s is less than expected." % self.name)
-        return [make_dynamic_closure(env, v) for v in val]
+        return [make_dynamic_closure(dc_list, env, v) for v in val]
 
     def flatten(self, val):
         "Flatten ellipsis."
@@ -447,12 +467,12 @@ class SequenceTemplate(Template):
         elif isinstance(tmpl, SequenceTemplate):
             self.ellipsis_names.extend(tmpl.ellipsis_names)
 
-    def expand(self, env, md, idx=[]):
-        return self.expand_flatten(env, md, idx, self.nflatten)
+    def expand(self, dc_list, env, md, idx=[]):
+        return self.expand_flatten(dc_list, env, md, idx, self.nflatten)
 
-    def expand_flatten(self, env, md, idx, flatten):
+    def expand_flatten(self, dc_list, env, md, idx, flatten):
         if flatten == 0:
-            return self.expand_0(env, md, idx)
+            return self.expand_0(dc_list, env, md, idx)
         length = 0
         for name in self.ellipsis_names:
             var = md.get(name, Ellipsis())
@@ -469,17 +489,17 @@ class SequenceTemplate(Template):
             res = []
             for i in range(length):
                 idx[-1] = i
-                res.extend(self.expand_flatten(env, md, idx, flatten-1))
+                res.extend(self.expand_flatten(dc_list, env, md, idx, flatten-1))
             idx.pop()
             return res
         else:
             return ()
 
-    def expand_0(self, env, md, idx):
+    def expand_0(self, dc_list, env, md, idx):
         elems = []
         for tmpl in self.sequence:
-            elems.extend(tmpl.expand(env, md, idx))
-        rest = self.tail.expand(env, md, idx)[0]
+            elems.extend(tmpl.expand(dc_list, env, md, idx))
+        rest = self.tail.expand(dc_list, env, md, idx)[0]
         for elem in reversed(elems):
             rest = pair(elem, rest)
         return [rest]

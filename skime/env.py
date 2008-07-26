@@ -114,3 +114,6 @@ class Environment(object):
                 return Location(env, idx)
             env = env.parent
         return None
+
+    def __repr__(self):
+        return "<Environment @%X>" % id(self)

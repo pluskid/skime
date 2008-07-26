@@ -310,6 +310,17 @@ instructions:
       proc.lexical_parent = ctx.env
 
   -
+    name: fix_lexical_pop
+    tags: []
+    desc: Like fix_literal, but pop the object off after fixing.
+    operands: []
+    stack_before: [obj]
+    stack_after: []
+    code: |
+      proc = ctx.pop()
+      proc.lexical_parent = ctx.env
+
+  -
     name: fix_lexical_depth
     tags: []
     desc: Fix the lexical_parent of an object.
@@ -324,3 +335,16 @@ instructions:
           env = env.parent
           depth -= 1
       proc.lexical_parent = env
+
+  -
+    name: dynamic_eval
+    tags: []
+    desc: Evaluate a DynamicClosure and push the result.
+    operands: []
+    stack_before: [dynamic_closure]
+    stack_after: [result]
+    code: |
+      dc = ctx.pop()
+      form = dc.form
+      env = dc.lexical_parent
+      ctx.push(form.eval(env, ctx.vm))

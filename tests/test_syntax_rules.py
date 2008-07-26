@@ -18,7 +18,7 @@ def filter_dc(expr):
 def macro(code):
     return Macro(None, parse(code))
 def trans(m, expr):
-    return filter_dc(m.transform(None, parse(expr)))
+    return filter_dc(m.transform(None, parse(expr))[0])
 
 class TestSyntaxRules(object):
     """\

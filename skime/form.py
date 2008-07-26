@@ -24,9 +24,8 @@ class Form(object):
         # The literals used in bytecode
         self.literals = builder.literals
 
-    def eval(self, env):
-        "Eval the form under env."
-        vm = env.vm
+    def eval(self, env, vm):
+        "Eval the form under env and vm."
         ctx = Context(self, env, vm.ctx)
         run(ctx)
         return ctx.pop()
