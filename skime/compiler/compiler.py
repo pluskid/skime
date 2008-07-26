@@ -3,6 +3,7 @@ from types          import NoneType
 from ..types.symbol import Symbol as sym
 from ..types.pair   import Pair as pair
 from ..macro        import Macro, DynamicClosure, SymbolClosure
+from ..form         import Form
                      
 from ..errors       import CompileError
 from ..errors       import SyntaxError
@@ -128,8 +129,12 @@ class Compiler(object):
                     expr, dc_list = macro.transform(transform_env, expr)
 
                     transform_env = macro.lexical_parent
-                    macro_bdr = bdr.push_proc(parent_env=macro.lexical_parent)
-                    self.generate_expr(macro_bdr, expr, keep=True, tail=True)
+                    form_bdr = Builder(transform_env)
+                    self.generate_expr(form_bdr, expr, keep=True, tail=False)
+                    macro_closure = DynamicClosure(transform_env, expr)
+                    macro_closure.form = form_bdr.generate()
+                    bdr.emit('push_literal', macro_closure)
+
                     dist = self.calc_env_distance(macro.lexical_parent, bdr.env)
                     if dist == 0:
                         bdr.emit('fix_lexical')
@@ -143,6 +148,12 @@ class Compiler(object):
                         form_bdr = Builder(bdr.env)
                         self.generate_expr(form_bdr, dc.expression, keep=True, tail=False)
                         dc.form = form_bdr.generate()
+
+                    bdr.emit('dynamic_eval')
+                    if not keep:
+                        bdr.emit('pop')
+                    elif tail:
+                        bdr.emit('ret')
                         
                 else:
                     arg  = expr.rest
@@ -152,12 +163,12 @@ class Compiler(object):
                         argc += 1
                     self.generate_expr(bdr, expr.first, keep=True, tail=False)
                     
-                if tail:
-                    bdr.emit('tail_call', argc)
-                else:
-                    bdr.emit('call', argc)
-                    if not keep:
-                        bdr.emit('pop')
+                    if tail:
+                        bdr.emit('tail_call', argc)
+                    else:
+                        bdr.emit('call', argc)
+                        if not keep:
+                            bdr.emit('pop')
 
         elif isinstance(expr, DynamicClosure):
             bdr.emit('push_literal', expr)
@@ -257,6 +268,10 @@ class Compiler(object):
         if expr is None:
             raise SyntaxError("Empty define expression")
         var = expr.first
+
+        # SymbolClosure now has no effect, only as normal symbol
+        if isinstance(var, SymbolClosure):
+            var = var.expression
         
         if isinstance(var, pair):
             gen = self.generate_lambda

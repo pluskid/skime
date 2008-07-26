@@ -66,3 +66,10 @@ class TestMacro(HelperVM):
           ((lambda (foo)
              (stx foo))
            100))""") == pair(100, 10)
+
+        assert self.eval("""
+        (begin
+          (define-syntax def10 (syntax-rules ()
+                                 ((_ var) (define var 10))))
+          (def10 foo)
+          foo)""") == 10
