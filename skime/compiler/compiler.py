@@ -39,6 +39,16 @@ class Compiler(object):
     ########################################
     # Helper functions
     ########################################
+    def calc_env_distance(self, ancestor, descendant):
+        "Calculate the distance between ancestor and descendant."
+        dist = 0
+        while descendant != ancestor:
+            if descendant is None:
+                raise SyntaxError("Attempt calculate the distance between unrelated environments.")
+            dist += 1
+            descendant = descendant.parent
+        return dist
+        
     def get_macro(self, env, name):
         if not isinstance(name, sym):
             return None
@@ -130,7 +140,11 @@ class Compiler(object):
                     
                     macro_bdr = bdr.push_proc(parent_env=macro.lexical_parent)
                     self.generate_expr(macro_bdr, expr, keep=True, tail=True)
-                    bdr.emit('make_lambda')
+                    dist = self.calc_env_distance(macro.lexical_parent, bdr.env)
+                    if dist == 0:
+                        bdr.emit('fix_lexical')
+                    else:
+                        bdr.emit('fix_lexical_depth', dist)
                 else:
                     arg  = expr.rest
                     while arg is not None:
@@ -224,7 +238,7 @@ class Compiler(object):
 
             bdr = base_builder.push_proc(args=args, rest_arg=rest_arg)
             self.generate_body(bdr, body, keep=True, tail=True)
-            base_builder.emit("make_lambda")
+            base_builder.emit("fix_lexical")
             
             if tail:
                 base_builder.emit('ret')

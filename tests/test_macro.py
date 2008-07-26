@@ -32,3 +32,13 @@ class TestMacro(HelperVM):
           ; assignment doesn't change lexical binding
           (set! <-> 6)
           (my-syntax 3 <-> 4))""") == pair(4, pair(3, None))
+
+    def test_basic_lexical_scope(self):
+        assert self.eval("""
+        (begin
+          (define-syntax my-add (syntax-rules ()
+                                  ((_ a b) (+ a b))))
+          (define (my-proc)
+            (my-add 1 2))
+
+          (my-proc))""") == 3

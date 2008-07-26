@@ -299,12 +299,28 @@ instructions:
           ctx.ip += $(insn_len)
 
   -
-    name: make_lambda
+    name: fix_lexical
     tags: []
-    desc: Create a procedure.
+    desc: Fix the lexical_parent of an object.
     operands: []
-    stack_before: [proc]
-    stack_after: [lambda]
+    stack_before: [obj]
+    stack_after: [obj]
     code: |
       proc = ctx.top()
-      proc.env.parent = ctx.env
+      proc.lexical_parent = ctx.env
+
+  -
+    name: fix_lexical_depth
+    tags: []
+    desc: Fix the lexical_parent of an object.
+    operands: [depth]
+    stack_before: [obj]
+    stack_after: [obj]
+    code: |
+      depth = get_param(ctx, 1)
+      proc = ctx.top()
+      env = ctx.env
+      while depth > 0:
+          env = env.parent
+          depth -= 1
+      proc.lexical_parent = env

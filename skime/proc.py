@@ -5,7 +5,6 @@ from .compiler.disasm import disasm
 
 class Procedure(object):
     def __init__(self, builder, bytecode):
-        self.lexical_parent = builder.env.parent
         
         # The Environment created at compile time. A new
         # Environment will be created when the procedure
@@ -27,6 +26,12 @@ class Procedure(object):
             self.fixed_argc = self.argc
 
         self.literals = list(builder.literals)
+
+    def lexical_parent_get(self):
+        return self.env.parent
+    def lexical_parent_set(self, parent):
+        self.env.parent = parent
+    lexical_parent = property(lexical_parent_get, lexical_parent_set)
 
     def check_arity(self, argc):
         if self.fixed_argc == self.argc:
