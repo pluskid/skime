@@ -54,9 +54,9 @@ class SyntaxRule(object):
         return md
 
     def expand(self, env, md):
-        dc_list = []
-        expr = self.template.expand(dc_list, env, md, [])[0]
-        return expr, dc_list
+        dc_factory = ClosureFactory(env)
+        expr = self.template.expand(dc_factory, md, [])[0]
+        return expr, dc_factory.closures
 
     ########################################
     # Pattern compiling
@@ -357,6 +357,8 @@ class DynamicClosure(object):
         return isinstance(o, DynamicClosure) and \
                self.lexical_parent == o.lexical_parent and \
                self.expression == o.expression
+    def __ne__(self, o):
+        return not self.__eq__(o)
 
     def __str__(self):
         return self.__repr__()
@@ -367,19 +369,40 @@ class DynamicClosure(object):
 class SymbolClosure(DynamicClosure):
     pass
 
-def make_dynamic_closure(dc_list, env, expr):
-    if isinstance(expr, DynamicClosure):
-        return expr
-    if isinstance(expr, sym):
-        dc = SymbolClosure(env, expr)
-        dc_list.append(dc)
-        return dc
-    if isinstance(expr, pair):
-        dc = DynamicClosure(env, expr)
-        dc_list.append(dc)
-        return dc
-    # other thing are considered environment-indenpendent
-    return expr
+class ClosureFactory(object):
+    "Create and hold DynamicClosure."
+    def __init__(self, env):
+        self.env = env
+        self.values = []
+        self.closures = []
+
+    def make_closure(self, value):
+        if isinstance(value, DynamicClosure):
+            return value
+        if isinstance(value, sym):
+            sc = self.get_closure(sym)
+            if sc is None:
+                self.values.append(value)
+                sc = SymbolClosure(self.env, value)
+                self.closures.append(sc)
+            return sc
+        if isinstance(value, pair):
+            dc = self.get_closure(sym)
+            if dc is None:
+                self.values.append(value)
+                dc = DynamicClosure(self.env, value)
+                self.closures.append(dc)
+            return dc
+        # other values are considered environment-indenpendent
+        return value
+
+    def get_closure(self, value):
+        # the closures in a macro is generally not too many
+        # so linear search is OK.
+        for i in range(len(self.values)):
+            if value == self.values[i]:
+                return self.closures[i]
+        return None
 
 # There are the following kinds of templates:
 #  - symbol:
@@ -397,7 +420,7 @@ class Template(object):
     def class_name(self):
         return self.__class__.__name__
     
-    def expand(self, dc_list, env, md, nflatten=0):
+    def expand(self, dc_factory, md, nflatten=0):
         "Expand the template under match dict md."
         raise SyntaxError("Attempt to expand an abstract template.")
 
@@ -407,7 +430,7 @@ class ConstantTemplate(Template):
         Template.__init__(self)
         self.value = value
 
-    def expand(self, dc_list, env, md, idx=[]):
+    def expand(self, dc_factory, md, idx=[]):
         return (self.value, )
     
     def __str__(self):
@@ -420,7 +443,7 @@ class VariableTemplate(Template):
         Template.__init__(self)
         self.name = name
 
-    def expand(self, dc_list, env, md, idx=[]):
+    def expand(self, dc_factory, md, idx=[]):
         val = md.get(self.name, Ellipsis())
         for i in idx:
             val = val[i]
@@ -431,7 +454,7 @@ class VariableTemplate(Template):
             nflatten -= 1
         if len(val) > 0 and isinstance(val[0], Ellipsis):
             raise SyntaxError("Ellipsis after variable %s is less than expected." % self.name)
-        return [make_dynamic_closure(dc_list, env, v) for v in val]
+        return [dc_factory.make_closure(v) for v in val]
 
     def flatten(self, val):
         "Flatten ellipsis."
@@ -474,12 +497,12 @@ class SequenceTemplate(Template):
         elif isinstance(tmpl, SequenceTemplate):
             self.ellipsis_names.extend(tmpl.ellipsis_names)
 
-    def expand(self, dc_list, env, md, idx=[]):
-        return self.expand_flatten(dc_list, env, md, idx, self.nflatten)
+    def expand(self, dc_factory, md, idx=[]):
+        return self.expand_flatten(dc_factory, md, idx, self.nflatten)
 
-    def expand_flatten(self, dc_list, env, md, idx, flatten):
+    def expand_flatten(self, dc_factory, md, idx, flatten):
         if flatten == 0:
-            return self.expand_0(dc_list, env, md, idx)
+            return self.expand_0(dc_factory, md, idx)
         length = 0
         for name in self.ellipsis_names:
             var = md.get(name, Ellipsis())
@@ -496,17 +519,17 @@ class SequenceTemplate(Template):
             res = []
             for i in range(length):
                 idx[-1] = i
-                res.extend(self.expand_flatten(dc_list, env, md, idx, flatten-1))
+                res.extend(self.expand_flatten(dc_factory, md, idx, flatten-1))
             idx.pop()
             return res
         else:
             return ()
 
-    def expand_0(self, dc_list, env, md, idx):
+    def expand_0(self, dc_factory, md, idx):
         elems = []
         for tmpl in self.sequence:
-            elems.extend(tmpl.expand(dc_list, env, md, idx))
-        rest = self.tail.expand(dc_list, env, md, idx)[0]
+            elems.extend(tmpl.expand(dc_factory, md, idx))
+        rest = self.tail.expand(dc_factory, md, idx)[0]
         for elem in reversed(elems):
             rest = pair(elem, rest)
         return [rest]
