@@ -109,20 +109,36 @@ class Compiler(object):
             if routine is not None:
                 routine(bdr, expr.rest, keep=keep, tail=tail)
             else:
-                macro = self.get_macro(bdr.env, expr.first)
-                while macro is not None:
-                    expr = macro.transform(bdr.env, expr)
-                    if not isinstance(expr, pair):
-                        return self.generate_expr(bdr, expr, keep=keep, tail=tail)
-                    macro = self.get_macro(bdr.env, expr.first)
-                
                 argc = 0
-                arg  = expr.rest
-                while arg is not None:
-                    self.generate_expr(bdr, arg.first, keep=True, tail=False)
-                    arg = arg.rest
-                    argc += 1
-                self.generate_expr(bdr, expr.first, keep=True, tail=False)
+                macro = self.get_macro(bdr.env, expr.first)
+                transform_env = bdr.env
+                if macro is not None:
+                    while True:
+                        expr = macro.transform(transform_env, expr)
+                        transform_env = macro.lexical_parent
+                        if not isinstance(expr, pair):
+                            break
+                        else:
+                            new_macro = self.get_macro(macro.lexical_parent, expr.first)
+                            if new_macro is not None and \
+                               new_macro.lexical_parent == macro.lexical_parent:
+                                # we can expand several macro with the same lexical parent
+                                # at a time
+                                macro = new_macro
+                            else:
+                                break
+                    
+                    macro_bdr = bdr.push_proc(parent_env=macro.lexical_parent)
+                    self.generate_expr(macro_bdr, expr, keep=True, tail=True)
+                    bdr.emit('make_lambda')
+                else:
+                    arg  = expr.rest
+                    while arg is not None:
+                        self.generate_expr(bdr, arg.first, keep=True, tail=False)
+                        arg = arg.rest
+                        argc += 1
+                    self.generate_expr(bdr, expr.first, keep=True, tail=False)
+                    
                 if tail:
                     bdr.emit('tail_call', argc)
                 else:

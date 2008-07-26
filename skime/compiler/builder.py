@@ -84,7 +84,7 @@ class Builder(object):
             args = (depth, idx)
         self.emit('%s_local%s' % (action, postfix), *args)
 
-    def push_proc(self, args=[], rest_arg=False):
+    def push_proc(self, args=[], rest_arg=False, parent_env=None):
         """\
         Return a builder for building a procedure. The returned builder
         is used to build the body of the procedure.
@@ -93,8 +93,10 @@ class Builder(object):
         automatically to get the procedure object, add it to the literals
         and push to the operand stack.
         """
+        if parent_env is None:
+            parent_env = self.env
         # create a new environment for procedure
-        env = Environment(self.env)
+        env = Environment(parent_env)
         # Define procedure arguments as local variables
         for x in args:
             env.alloc_local(x)

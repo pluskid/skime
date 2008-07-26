@@ -4,6 +4,7 @@ from .errors       import SyntaxError
 
 class Macro(object):
     def __init__(self, env, body):
+        self.lexical_parent = env
         try:
             # Process literals
             literals = body.first
