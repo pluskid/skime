@@ -68,12 +68,19 @@ class Builder(object):
             raise TypeError, "Duplicated label: %s" % name
         self.labels[name] = self.ip
 
-    def emit_local(self, action, name):
+    def emit_local(self, action, name, dyn_env=None):
         """\
         Emit an instruction to push or set local variable. The local variable
         is automatically searched in the current context and parents.
         """
-        depth, idx = self.find_local_depth(name)
+        if dyn_env is None:
+            env = self.env
+            dyn = ""
+        else:
+            env = dyn_env
+            dyn = "dynamic_"
+
+        depth, idx = self.find_local_depth(name, env)
         if depth is None:
             raise UnboundVariable(name, "Unbound variable %s" % name)
         if depth == 0:
@@ -82,7 +89,7 @@ class Builder(object):
         else:
             postfix = '_depth'
             args = (depth, idx)
-        self.emit('%s_local%s' % (action, postfix), *args)
+        self.emit('%s%s_local%s' % (dyn, action, postfix), *args)
 
     def push_proc(self, args=[], rest_arg=False, parent_env=None):
         """\
@@ -148,13 +155,12 @@ class Builder(object):
     ########################################
     # Helpers used internally
     ########################################
-    def find_local_depth(self, name):
+    def find_local_depth(self, name, env):
         """\
         Find the depth and index of a local variable. If no variable
         with the given name is found, return (None, None).
         """
         depth = 0
-        env = self.env
         while env is not None:
             idx = env.find_local(name)
             if idx is not None:

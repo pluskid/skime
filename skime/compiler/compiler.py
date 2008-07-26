@@ -2,7 +2,7 @@ from types          import NoneType
                       
 from ..types.symbol import Symbol as sym
 from ..types.pair   import Pair as pair
-from ..macro        import Macro, DynamicClosure
+from ..macro        import Macro, DynamicClosure, SymbolClosure
                      
 from ..errors       import CompileError
 from ..errors       import SyntaxError
@@ -53,6 +53,8 @@ class Compiler(object):
         if not isinstance(name, sym):
             return None
         loc = env.lookup_location(name.name)
+        if loc is None:
+            return None
         val = loc.env.read_local(loc.idx)
         if isinstance(val, Macro):
             return val
@@ -285,9 +287,6 @@ class Compiler(object):
         if expr is None:
             raise SyntaxError("Empty set! expression")
         var = expr.first
-
-        if not isinstance(var, sym):
-            raise SyntaxError("Invalid set! expression, expecting symbol")
         val = expr.rest
 
         if val is None:
@@ -299,7 +298,15 @@ class Compiler(object):
         self.generate_expr(bdr, val, keep=True, tail=False)
         if keep:
             bdr.emit('dup')
-        bdr.emit_local('set', var.name)
+
+        if isinstance(var, sym):
+            bdr.emit_local('set', var.name)
+        elif isinstance(var, SymbolClosure):
+            bdr.emit('push_literal', var)
+            bdr.emit_local('set', var.expression.name, var.lexical_parent)
+        else:
+            raise SyntaxError("Invalid set! expression, expecting symbol")
+
         if tail:
             bdr.emit('ret')
 

@@ -42,3 +42,20 @@ class TestMacro(HelperVM):
             (my-add x x))
 
           (my-proc 5))""") == 10
+
+    def test_lexical_scope(self):
+        val = self.eval("""
+        (begin
+          (define-syntax swap
+                         (syntax-rules ()
+                           ((swap a b)
+                            ((lambda (tmp)
+                               (set! a b)
+                               (set! b tmp))
+                             a))))
+          (define foo 4)
+          (define tmp 5)
+          (swap foo tmp)
+          (cons foo tmp))""")
+        print val
+        assert val == pair(5, 4)

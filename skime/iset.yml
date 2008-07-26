@@ -348,3 +348,37 @@ instructions:
       form = dc.form
       env = dc.lexical_parent
       ctx.push(form.eval(env, ctx.vm))
+
+  -
+    name: dynamic_set_local
+    tags: []
+    desc: Assignment of SymbolClosure.
+    operands: [idx]
+    stack_before: [value, sym_closure]
+    stack_after: []
+    code: |
+      idx = get_param(ctx, 1)
+      sym_closure = ctx.pop()
+      value = ctx.pop()
+
+      env = sym_closure.lexical_parent
+      env.assign_local(idx, value)
+
+  -
+    name: dynamic_set_local_depth
+    tags: []
+    desc: Assignment of SymbolClosure.
+    operands: [depth, idx]
+    stack_before: [value, sym_closure]
+    stack_after: []
+    code: |
+      depth = get_param(ctx, 1)
+      idx = get_param(ctx, 2)
+      sym_closure = ctx.pop()
+      value = ctx.pop()
+
+      env = sym_closure.lexical_parent
+      while depth > 0:
+          env = env.parent
+          depth -= 1
+      env.assign_local(idx, value)

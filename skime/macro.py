@@ -364,10 +364,17 @@ class DynamicClosure(object):
         return "<DynamicClosure expr=%s, env=%s>" % (self.expression,
                                                      self.lexical_parent)
 
+class SymbolClosure(DynamicClosure):
+    pass
+
 def make_dynamic_closure(dc_list, env, expr):
     if isinstance(expr, DynamicClosure):
         return expr
-    if isinstance(expr, sym) or isinstance(expr, pair):
+    if isinstance(expr, sym):
+        dc = SymbolClosure(env, expr)
+        dc_list.append(dc)
+        return dc
+    if isinstance(expr, pair):
         dc = DynamicClosure(env, expr)
         dc_list.append(dc)
         return dc
