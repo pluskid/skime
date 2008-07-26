@@ -65,7 +65,7 @@ class Procedure(object):
         io.write('-'*50)
         io.write('\n')
 
-        disasm(io, self.bytecode, self.env)
+        disasm(io, self)
 
         content = io.getvalue()
         io.close()

@@ -230,6 +230,10 @@ class Compiler(object):
                 self.generate_expr(bdr, expthen, keep=False, tail=False)
                 bdr.def_label(lbl_end)
 
+    def filter_sc(self, expr):
+        if isinstance(expr, SymbolClosure):
+            return expr.expression
+        return expr
     def generate_lambda(self, base_builder, expr, keep=True, tail=False):
         if keep is not True:
             return  # lambda expression has no side-effect
@@ -240,19 +244,19 @@ class Compiler(object):
             if isinstance(arglst, pair):
                 args = []
                 while isinstance(arglst, pair):
-                    args.append(arglst.first.name)
+                    args.append(self.filter_sc(arglst.first).name)
                     arglst = arglst.rest
                 if arglst is None:
                     rest_arg = False
                 else:
-                    args.append(arglst.name)
+                    args.append(self.filter_sc(arglst).name)
                     rest_arg = True
             elif arglst is None:
                 rest_arg = False
                 args = []
             else:
                 rest_arg = True
-                args = [arglst.name]
+                args = [self.filter_sc(arglst).name]
 
             bdr = base_builder.push_proc(args=args, rest_arg=rest_arg)
             self.generate_body(bdr, body, keep=True, tail=True)
@@ -326,8 +330,11 @@ class Compiler(object):
             bdr.emit('ret')
 
     def generate_quote(self, bdr, expr, keep=True, tail=False):
+        expr = expr.first
+        if isinstance(expr, DynamicClosure):
+            expr = expr.expression
         if keep:
-            bdr.emit('push_literal', expr.first)
+            bdr.emit('push_literal', expr)
             if tail:
                 bdr.emit('ret')
 

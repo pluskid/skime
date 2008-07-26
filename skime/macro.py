@@ -367,7 +367,8 @@ class DynamicClosure(object):
                                                      self.lexical_parent)
 
 class SymbolClosure(DynamicClosure):
-    pass
+    def __hash__(self):
+        return self.expression.name.__hash__()
 
 class ClosureFactory(object):
     "Create and hold DynamicClosure."
