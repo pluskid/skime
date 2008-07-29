@@ -3,10 +3,12 @@ from .compiler.compiler import Compiler
 from .vm import VM as SkimeVM
 from .types.symbol import Symbol
 from .types.pair import Pair
-from .prim import prim_list_p, iter_list
+from .prim import Primitive, prim_list_p, iter_list
+from .proc import Procedure
 
 import errors
 from schemepy.exceptions import *
+from schemepy.lam import Lambda
 
 class VM(object):
     "The compatibile wrapper layer to Schemepy."
@@ -38,7 +40,7 @@ class VM(object):
             }
         def new_meth(self, *args, **kw):
             try:
-                meth(self, *args, **kw)
+                return meth(self, *args, **kw)
             except Exception, e:
                 t = mapping.get(type(e))
                 if t is None:
@@ -57,6 +59,11 @@ class VM(object):
     def repl(self):
         pass
 
+    def define(self, name, value):
+        if isinstance(name, Symbol):
+            name = name.name
+        self.vm.env.alloc_local(name, value)
+        
     def get(self, name, default=None):
         idx = self.vm.env.find_local(name)
         if idx is not None:
@@ -103,6 +110,10 @@ class VM(object):
         proc = mapping.get(type(val))
         if proc is not None:
             return proc(val, shallow)
+
+        if isinstance(val, Lambda):
+            return val._lambda
+
         return val
 
     def fromscheme(self, val, shallow=False):
@@ -132,6 +143,11 @@ class VM(object):
                             self.fromscheme(val.rest))
         if val is None:
             return []
+
+        if isinstance(val, Primitive) or \
+           isinstance(val, Procedure):
+            return Lambda(val, self, shallow)
+
         return val
 
     def type(self, val):
@@ -147,4 +163,7 @@ class VM(object):
             return Pair
         if val is None:
             return list
+        if isinstance(val, Procedure) or \
+           isinstance(val, Primitive):
+            return Lambda
         return object
