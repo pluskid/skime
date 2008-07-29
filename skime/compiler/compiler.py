@@ -25,6 +25,7 @@ class Compiler(object):
     sym_and = sym("and")
     sym_define_syntax = sym("define-syntax")
     sym_syntax_rules = sym("syntax-rules")
+    sym_let = sym("let")
     
     def __init__(self):
         self.label_seed = 0
@@ -103,7 +104,8 @@ class Compiler(object):
             Compiler.sym_quote: self.generate_quote,
             Compiler.sym_or: self.generate_or,
             Compiler.sym_and: self.generate_and,
-            Compiler.sym_define_syntax: self.generate_define_syntax
+            Compiler.sym_define_syntax: self.generate_define_syntax,
+            Compiler.sym_let: self.generate_let
             }
         if self.self_evaluating(expr):
             if keep:
@@ -233,7 +235,10 @@ class Compiler(object):
     def filter_sc(self, expr):
         if isinstance(expr, SymbolClosure):
             return expr.expression
-        return expr
+        elif isinstance(expr, sym):
+            return expr
+        raise SyntaxError("Expecting symbol, but got %s" % expr)
+    
     def generate_lambda(self, base_builder, expr, keep=True, tail=False):
         if keep is not True:
             return  # lambda expression has no side-effect
@@ -267,6 +272,48 @@ class Compiler(object):
 
         except AttributeError, e:
             raise SyntaxError("Broken lambda expression: "+e.message)
+
+    def generate_let(self, bdr, expr, keep=True, tail=False):
+        """\
+        (let ((var1 val1) (var2 val2)) expr1 expr2)
+                          ||
+                         _||_
+                          \/
+        ((lambda (var1 var2) expr1 expr2) val1 val2)
+        """
+        if not isinstance(expr, pair):
+            raise SyntaxError("Invalid let expression")
+        bindings = expr.first
+        param = []
+        args = []
+
+        if isinstance(bindings, pair):
+            while isinstance(bindings, pair):
+                binding = bindings.first
+                if not isinstance(binding, pair) or \
+                   not isinstance(binding.rest, pair):
+                    raise SyntaxError("Invalid binding for let expression: %s" % binding)
+                param.append(self.filter_sc(binding.first).name)
+                args.append(binding.rest.first)
+                bindings = bindings.rest
+        elif bindings is not None:
+            raise SyntaxError("Invalid let expression: expecting bindings, but got %s" % bindings)
+
+        for x in args:
+            self.generate_expr(bdr, x, keep=True, tail=False)
+
+        lambda_bdr = bdr.push_proc(args=param, rest_arg=False)
+        self.generate_body(lambda_bdr, expr.rest, keep=True, tail=True)
+        bdr.emit('fix_lexical')
+
+        argc = len(args) 
+        if tail:
+            bdr.emit('tail_call', argc)
+        else:
+            bdr.emit('call', argc)
+            if not keep:
+                bdr.emit('pop')
+
         
     def generate_define(self, bdr, expr, keep=True, tail=False):
         if expr is None:

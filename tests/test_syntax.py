@@ -57,10 +57,25 @@ class TestSyntax(HelperVM):
 
     def test_set_x(self):
         assert self.eval("""
-(begin
-  (define foo 5)
-  (define bar foo)
-  (set! foo 6)
-  (pair foo bar))""") == pair(6, 5)
+        (begin
+          (define foo 5)
+          (define bar foo)
+          (set! foo 6)
+          (pair foo bar))""") == pair(6, 5)
         assert self.eval("(set! pair 10)") == 10
         assert_raises(UnboundVariable, self.eval, "(set! var-not-exist 10)")
+
+    def test_let(self):
+        assert self.eval("""
+        (let ((a 3) (b 2))
+          (+ a b)
+          (- a b))""") == 1
+
+        assert self.eval("""
+        (begin
+          (define a 5)
+          (let ((a 10) (b a))
+            (- a b)))""") == 5
+
+        assert self.eval("(let () #t)") == True
+        assert self.eval("(let ())") == None
