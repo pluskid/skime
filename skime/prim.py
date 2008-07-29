@@ -52,6 +52,15 @@ class PyPrimitive(Primitive):
     def __str__(self):
         return "<skime primitive => %s>" % self.proc.__name__
 
+class PyCallable(Primitive):
+    def __init__(self, proc):
+        self.proc = proc
+
+    def check_arity(self, argc):
+        return True
+
+    def call(self, vm, *args):
+        return self.proc(*args)
 
 def load_primitives(env):
     "Load primitives into an Environment."

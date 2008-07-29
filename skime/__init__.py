@@ -3,12 +3,20 @@ from .compiler.compiler import Compiler
 from .vm import VM as SkimeVM
 from .types.symbol import Symbol
 from .types.pair import Pair
-from .prim import Primitive, prim_list_p, iter_list
+from .prim import Primitive, PyCallable, prim_list_p, iter_list
 from .proc import Procedure
 
 import errors
 from schemepy.exceptions import *
 from schemepy.lam import Lambda
+
+def dummy():
+    pass
+FunctionType = type(dummy)
+
+class PyObj(object):
+    def __init__(self, obj):
+        self.obj = obj
 
 class VM(object):
     "The compatibile wrapper layer to Schemepy."
@@ -114,7 +122,13 @@ class VM(object):
         if isinstance(val, Lambda):
             return val._lambda
 
-        return val
+        if callable(val):
+            return PyCallable(val)
+
+        if VM.direct_types.has_key(type(val)):
+            return val
+        
+        return PyObj(val)
 
     def fromscheme(self, val, shallow=False):
         if isinstance(val, Pair):
@@ -144,11 +158,20 @@ class VM(object):
         if val is None:
             return []
 
+        if isinstance(val, PyCallable):
+            return val.proc
+
         if isinstance(val, Primitive) or \
            isinstance(val, Procedure):
             return Lambda(val, self, shallow)
 
-        return val
+        if VM.direct_types.has_key(type(val)):
+            return val
+
+        if isinstance(val, PyObj):
+            return val.obj
+
+        raise ConversionError(val, "Don't know how to convert this type.")
 
     def type(self, val):
         t = VM.direct_types.get(type(val))
@@ -163,7 +186,11 @@ class VM(object):
             return Pair
         if val is None:
             return list
+        if isinstance(val, PyCallable):
+            return FunctionType
         if isinstance(val, Procedure) or \
            isinstance(val, Primitive):
             return Lambda
-        return object
+        if isinstance(val, PyObj):
+            return object
+        return type(None)
