@@ -1,6 +1,7 @@
 from .compiler.parser import parse
 from .compiler.compiler import Compiler
 from .vm import VM as SkimeVM
+from .types.symbol import Symbol
 
 class VM(object):
     "The compatibile wrapper layer to Schemepy."
@@ -10,7 +11,9 @@ class VM(object):
         long: long,
         float: float,
         complex: complex,
-        str: str
+        str: str,
+        bool: bool,
+        Symbol: Symbol
         }
     
     def __init__(self, profile):
@@ -44,7 +47,7 @@ class VM(object):
         return val
 
     def type(self, val):
-        t = direct_types.get(type(val))
+        t = VM.direct_types.get(type(val))
         if t is not None:
             return t
         return object

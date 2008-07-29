@@ -93,6 +93,9 @@ def load_primitives(env):
     env.alloc_local('apply', PyPrimitive(prim_apply, (1, -1)))
     env.alloc_local('map', PyPrimitive(prim_map, (2, -1)))
 
+    env.alloc_local('string->symbol', PyPrimitive(prim_string_to_symbol, (1, 1)))
+    env.alloc_local('symbol->string', PyPrimitive(prim_symbol_to_string, (1, 1)))
+
 
 def type_error_decorator(meth):
     "Decorate method to catch Python TypeError and raise skime WrongArgType"
@@ -242,6 +245,13 @@ def prim_map(vm, proc, *lists):
     for x in reversed(res):
         rest = pair(x, rest)
     return rest
+
+def prim_string_to_sym(vm, name):
+    type_check(name, str)
+    return sym(name)
+def prim_sym_to_string(vm, s):
+    type_check(s, sym)
+    return s.name
 
 
 ########################################
