@@ -19,7 +19,6 @@ class VM(object):
         Symbol: Symbol
         }
 
-    eol = None
     def __init__(self, profile):
         # TODO: deal with profile
         self.vm = SkimeVM()
@@ -64,10 +63,17 @@ class VM(object):
                     value = self.toscheme(v)
                 lst = Pair(Pair(key, value), lst)
             return lst
+        def pair_to_pair(p, shallow):
+            if shallow:
+                return Pair(p.first, p.rest)
+            else:
+                return Pair(self.toscheme(p.first),
+                            self.toscheme(p.rest))
         
         mapping = {
             list: pylist_to_scmlist,
-            dict: dict_to_scmalist
+            dict: dict_to_scmalist,
+            Pair: pair_to_pair
             }
         proc = mapping.get(type(val))
         if proc is not None:
@@ -94,8 +100,13 @@ class VM(object):
                         d[k] = v
                     return d
                 return lst
-            return val
-
+            if shallow:
+                return Pair(val.first, val.rest)
+            else:
+                return Pair(self.fromscheme(val.first),
+                            self.fromscheme(val.rest))
+        if val is None:
+            return []
         return val
 
     def type(self, val):
@@ -109,4 +120,6 @@ class VM(object):
                         return list
                 return dict
             return Pair
+        if val is None:
+            return list
         return object
