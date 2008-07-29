@@ -5,6 +5,9 @@ from .types.symbol import Symbol
 from .types.pair import Pair
 from .prim import prim_list_p, iter_list
 
+import errors
+from schemepy.exceptions import *
+
 class VM(object):
     "The compatibile wrapper layer to Schemepy."
 
@@ -23,10 +26,31 @@ class VM(object):
         # TODO: deal with profile
         self.vm = SkimeVM()
         self.compiler = Compiler()
-    
+
+    def map_exception_deco(meth):
+        mapping = {
+            errors.UnboundVariable: ScmUnboundVariable,
+            errors.WrongArgNumber: ScmWrongArgNumber,
+            errors.WrongArgType: ScmWrongArgType,
+            errors.SyntaxError: ScmSyntaxError,
+            errors.ParseError: ScmSyntaxError,
+            errors.MiscError: ScmMiscError
+            }
+        def new_meth(self, *args, **kw):
+            try:
+                meth(self, *args, **kw)
+            except Exception, e:
+                t = mapping.get(type(e))
+                if t is None:
+                    t = ScmMiscError
+                raise t(e.message)
+        return new_meth
+
+    @map_exception_deco
     def compile(self, code):
         return self.compiler.compile(parse(code), self.vm.env)
 
+    @map_exception_deco
     def eval(self, compiled):
         return self.vm.run(compiled)
 
@@ -40,6 +64,7 @@ class VM(object):
         else:
             return default
 
+    @map_exception_deco
     def apply(self, proc, args):
         return self.vm.apply(proc, args)
 
