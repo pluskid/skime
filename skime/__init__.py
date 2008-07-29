@@ -12,6 +12,7 @@ class VM(object):
         float: float,
         complex: complex,
         str: str,
+        unicode: unicode,
         bool: bool,
         Symbol: Symbol
         }

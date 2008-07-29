@@ -246,10 +246,10 @@ def prim_map(vm, proc, *lists):
         rest = pair(x, rest)
     return rest
 
-def prim_string_to_sym(vm, name):
+def prim_string_to_symbol(vm, name):
     type_check(name, str)
     return sym(name)
-def prim_sym_to_string(vm, s):
+def prim_symbol_to_string(vm, s):
     type_check(s, sym)
     return s.name
 
