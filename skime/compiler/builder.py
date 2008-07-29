@@ -45,10 +45,10 @@ class Builder(object):
             elif lit is False:
                 insn_name = 'push_false'
                 args = ()
-            elif lit == 0:
+            elif lit == 0 and isinstance(lit, int):
                 insn_name = 'push_0'
                 args = ()
-            elif lit == 1:
+            elif lit == 1 and isinstance(lit, int):
                 insn_name = 'push_1'
                 args = ()
             elif lit is None:

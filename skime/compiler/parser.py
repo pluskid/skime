@@ -92,7 +92,8 @@ class Parser(object):
                 num2 = 1
             if not self.eat('i'):
                 self.report_error("Invalid number format, expecting 'i' for complex")
-            num1 = num1 + sign2*num2*1j
+            if num2 != 0:
+                num1 = num1 + sign2*num2*1j
 
         return sign1*num1
 

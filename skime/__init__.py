@@ -4,6 +4,15 @@ from .vm import VM as SkimeVM
 
 class VM(object):
     "The compatibile wrapper layer to Schemepy."
+
+    direct_types = {
+        int: int,
+        long: long,
+        float: float,
+        complex: complex,
+        str: str
+        }
+    
     def __init__(self, profile):
         # TODO: deal with profile
         self.vm = SkimeVM()
@@ -33,6 +42,9 @@ class VM(object):
 
     def fromscheme(self, val, shallow=False):
         return val
-        
+
     def type(self, val):
-        return type(val)
+        t = direct_types.get(type(val))
+        if t is not None:
+            return t
+        return object
