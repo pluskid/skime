@@ -13,6 +13,17 @@ class Pair(object):
         self.first = first
         self.rest = rest
 
+    def get_car(self):
+        return self.first
+    def set_car(self, val):
+        self.first = val
+    def get_cdr(self):
+        return self.rest
+    def set_cdr(self, val):
+        self.rest = val
+    car = property(get_car, set_car)
+    cdr = property(get_cdr, set_cdr)
+
     def __eq__(self, other):
         return isinstance(other, Pair) and \
                self.first == other.first and \

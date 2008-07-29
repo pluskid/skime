@@ -89,6 +89,7 @@ def load_primitives(env):
                    ((Procedure, Primitive), "procedure?")]:
         env.alloc_local(name, PyPrimitive(make_type_predict(t), (1, 1)))
     env.alloc_local('null?', PyPrimitive(prim_null_p, (1, 1)))
+    env.alloc_local('list?', PyPrimitive(prim_list_p, (1, 1)))
 
     env.alloc_local('apply', PyPrimitive(prim_apply, (1, -1)))
     env.alloc_local('map', PyPrimitive(prim_map, (2, -1)))
@@ -201,6 +202,31 @@ def prim_set_rest_x(vm, arg, val):
 def prim_null_p(vm, arg):
     return arg is None
 
+# list?, detect circular list
+def prim_list_p(vm, val):
+    obj1 = val
+    obj2 = val
+    while True:
+        if obj1 is None:
+            return True
+        if not isinstance(obj1, pair):
+            return False
+
+        obj1 = obj1.rest
+        if obj1 is None:
+            return True
+        if not isinstance(obj1, pair):
+            return False
+
+        obj1 = obj1.rest
+        obj2 = obj2.rest
+
+        # circular
+        if obj1 is obj2:
+            break
+        
+    return False
+
 def prim_list(vm, *args):
     lst = None
     for x in reversed(args):
@@ -273,3 +299,10 @@ def type_check(obj, t):
     if not isinstance(obj, t):
         raise WrongArgType("Expecting type %s, but got %s (type %s)" % \
                            (t, obj, type(obj)))
+
+def iter_list(lst, excp_t=WrongArgType):
+    while isinstance(lst, pair):
+        yield lst.first
+        lst = lst.rest
+    if lst is not None:
+        raise excp_t("Not a proper list")
