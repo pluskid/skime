@@ -95,8 +95,16 @@ def load_primitives(env):
                    (sym, "symbol?"),
                    (str, "string?"),
                    ((int, long, float, complex), "number?"),
+                   ((int, long, float), "rational?"),
+                   ((int, long, float), "real?"),
+                   ((int, long, float, complex), "complex?"),
+                   ((int, long), "integer?"),
                    ((Procedure, Primitive), "procedure?")]:
         env.alloc_local(name, PyPrimitive(make_type_predict(t), (1, 1)))
+
+    env.alloc_local('exact?', PyPrimitive(prim_exact_p, (1, 1)))
+    env.alloc_local('inexact?', PyPrimitive(prim_inexact_p, (1, 1)))
+    env.alloc_local('zero?', PyPrimitive(prim_zero_p, (1, 1)))    
     env.alloc_local('null?', PyPrimitive(prim_null_p, (1, 1)))
     env.alloc_local('list?', PyPrimitive(prim_list_p, (1, 1)))
 
@@ -211,7 +219,21 @@ def prim_set_rest_x(vm, arg, val):
     type_check(arg, pair)
     arg.rest = val
 
+def prim_exact_p(vm, arg):
+    if isinstance(arg, int) or \
+       isinstance(arg, long):
+        return True
+    # python complex are always inexact
+    if isinstance(arg, float) or \
+       isinstance(arg, complex):
+        return False
+    raise WrongArgType("Expecting a number, but got %s" % arg)
+def prim_inexact_p(vm, arg):
+    return not prim_exact_p(vm, arg)
 
+def prim_zero_p(vm, arg):
+    return arg == 0
+    
 def prim_null_p(vm, arg):
     return arg is None
 

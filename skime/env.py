@@ -25,6 +25,18 @@ class Location(object):
     def __str__(self):
         return '<Location idx=%s, env=%s>' % (self.idx, self.env)
 
+class Undef(object):
+    undef = None
+    def __new__(cls):
+        if cls.undef is None:
+            cls.undef = object.__init__(cls)
+        return cls.undef
+        
+    def __repr__(self):
+        return '<undef>'
+    def __str__(self):
+        return '<undef>'
+
 class Environment(object):
     """\
     An environment object holds the local variables of a scope
@@ -69,7 +81,7 @@ class Environment(object):
         """
         return self.locals[idx]
 
-    def alloc_local(self, name, value=None):
+    def alloc_local(self, name, value=Undef()):
         """\
         Allocate space for storing local variable. Return
         the index for the variable.
@@ -80,7 +92,8 @@ class Environment(object):
         """
         idx = self.locals_map.get(name)
         if idx is not None:
-            self.locals[idx] = value
+            if value is not Undef():
+                self.locals[idx] = value
             return idx
         idx = len(self.locals)
         self.locals_name.append(name)
