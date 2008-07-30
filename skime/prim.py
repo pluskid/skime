@@ -68,7 +68,7 @@ def load_primitives(env):
     env.alloc_local('-', PyPrimitive(minus, (1, -1)))
     env.alloc_local('*', PyPrimitive(mul, (-1, -1)))
     env.alloc_local('/', PyPrimitive(div, (1, -1)))
-    env.alloc_local('=', PyPrimitive(equal, (2, -1)))
+    env.alloc_local('=', PyPrimitive(equal, (-1, -1)))
     env.alloc_local('<', PyPrimitive(less, (2, -1)))
     env.alloc_local('>', PyPrimitive(more, (2, -1)))
     env.alloc_local('<=', PyPrimitive(less_equal, (2, -1)))
@@ -143,10 +143,14 @@ def div(vm, num, *args):
         num /= x
     return num
 
-def equal(vm, a, b, *args):
+def equal(vm, *args):
+    if len(args) < 2:
+        return True
+    a = args[0]
+    b = args[1]
     if a != b:
         return False
-    for x in args:
+    for x in args[2:]:
         if x != a:
             return False
     return True

@@ -149,7 +149,10 @@ class VM(object):
                             v = self.fromscheme(x.rest)
                         d[k] = v
                     return d
-                return lst
+                else:
+                    if shallow:
+                        return lst
+                    return [self.fromscheme(x) for x in lst]
             if shallow:
                 return Pair(val.first, val.rest)
             else:

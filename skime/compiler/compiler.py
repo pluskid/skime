@@ -26,6 +26,8 @@ class Compiler(object):
     sym_define_syntax = sym("define-syntax")
     sym_syntax_rules = sym("syntax-rules")
     sym_let = sym("let")
+    sym_letrec = sym("letrec")
+    sym_letstar = sym("let*")
     
     def __init__(self):
         self.label_seed = 0
@@ -105,7 +107,9 @@ class Compiler(object):
             Compiler.sym_or: self.generate_or,
             Compiler.sym_and: self.generate_and,
             Compiler.sym_define_syntax: self.generate_define_syntax,
-            Compiler.sym_let: self.generate_let
+            Compiler.sym_let: self.generate_let,
+            Compiler.sym_letrec: self.generate_letrec,
+            Compiler.sym_letstar: self.generate_letstar
             }
         if self.self_evaluating(expr):
             if keep:
@@ -314,6 +318,96 @@ class Compiler(object):
             if not keep:
                 bdr.emit('pop')
 
+    def generate_letrec(self, bdr, expr, keep=True, tail=False):
+        if not isinstance(expr, pair):
+            raise SyntaxError("Invalid letrec expression")
+        
+        bindings = expr.first
+        body = expr.rest
+
+        lambda_bdr = bdr.push_proc()
+
+        # letrec will evaluate the init forms in the new env
+        names = []
+        vals = []
+        
+        while isinstance(bindings, pair):
+            binding = bindings.first
+            if not isinstance(binding, pair) or \
+               not isinstance(binding.first, sym) or \
+               not isinstance(binding.rest, pair):
+                raise SyntaxError("Invalid binding for letrec expression: %s" % binding)
+            name = self.filter_sc(binding.first).name
+            val = binding.rest.first
+            lambda_bdr.def_local(name)
+
+            names.append(name)
+            vals.append(val)
+
+            bindings = bindings.rest
+        
+        if bindings is not None:
+            raise SyntaxError("Invalid bindings for letrec expression: %s" % bindings)
+
+        for i in range(len(names)):
+            self.generate_expr(lambda_bdr, vals[i], keep=True, tail=False)
+            lambda_bdr.emit_local('set', names[i])
+
+        self.generate_body(lambda_bdr, body, keep=True, tail=True)
+        bdr.emit('fix_lexical')
+
+        if tail:
+            bdr.emit('tail_call', 0)
+        else:
+            bdr.emit('call', 0)
+            if not keep:
+                bdr.emit('pop')
+
+    def generate_letstar(self, bdr, expr, keep=True, tail=False):
+        if not isinstance(expr, pair):
+            raise SyntaxError("Invalid letrec expression")
+        
+        bindings = expr.first
+        body = expr.rest
+
+        lambda_bdr = bdr.push_proc()
+
+        # let* will evaluate the init forms in the new env sequencially
+        names = []
+        vals = []
+        
+        while isinstance(bindings, pair):
+            binding = bindings.first
+            if not isinstance(binding, pair) or \
+               not isinstance(binding.first, sym) or \
+               not isinstance(binding.rest, pair):
+                raise SyntaxError("Invalid binding for let* expression: %s" % binding)
+            name = self.filter_sc(binding.first).name
+            val = binding.rest.first
+
+            names.append(name)
+            vals.append(val)
+
+            bindings = bindings.rest
+        
+        if bindings is not None:
+            raise SyntaxError("Invalid bindings for let* expression: %s" % bindings)
+
+        for i in range(len(names)):
+            lambda_bdr.def_local(names[i])
+            self.generate_expr(lambda_bdr, vals[i], keep=True, tail=False)
+            lambda_bdr.emit_local('set', names[i])
+
+        self.generate_body(lambda_bdr, body, keep=True, tail=True)
+        bdr.emit('fix_lexical')
+
+        if tail:
+            bdr.emit('tail_call', 0)
+        else:
+            bdr.emit('call', 0)
+            if not keep:
+                bdr.emit('pop')
+        
         
     def generate_define(self, bdr, expr, keep=True, tail=False):
         if expr is None:

@@ -80,6 +80,7 @@ class Environment(object):
         """
         idx = self.locals_map.get(name)
         if idx is not None:
+            self.locals[idx] = value
             return idx
         idx = len(self.locals)
         self.locals_name.append(name)
