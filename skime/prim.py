@@ -1,3 +1,5 @@
+import math
+
 from .types.symbol import Symbol as sym
 from .types.pair   import Pair as pair
 from .proc         import Procedure
@@ -73,7 +75,13 @@ def load_primitives(env):
     env.alloc_local('>', PyPrimitive(more, (2, -1)))
     env.alloc_local('<=', PyPrimitive(less_equal, (2, -1)))
     env.alloc_local('>=', PyPrimitive(more_equal, (2, -1)))
-                
+
+    env.alloc_local("log", PyPrimitive(prim_log, (1, 1)))
+    env.alloc_local("sin", PyPrimitive(prim_sin, (1, 1)))
+    env.alloc_local("cos", PyPrimitive(prim_cos, (1, 1)))
+    env.alloc_local("tan", PyPrimitive(prim_tan, (1, 1)))
+    env.alloc_local("abs", PyPrimitive(prim_abs, (1, 1)))
+    
     env.alloc_local('not', PyPrimitive(prim_not, (1, 1)))
         
     env.alloc_local('first', PyPrimitive(prim_first, (1, 1)))
@@ -198,6 +206,26 @@ def more_equal(vm, a, b, *args):
             return False
         b = x
     return True
+
+@type_error_decorator
+def prim_log(vm, arg):
+    return math.log(arg)
+
+@type_error_decorator
+def prim_sin(vm, arg):
+    return math.sin(arg)
+
+@type_error_decorator
+def prim_cos(vm, arg):
+    return math.cos(arg)
+
+@type_error_decorator
+def prim_tan(vm, arg):
+    return math.tan(arg)
+
+@type_error_decorator
+def prim_abs(vm, arg):
+    return abs(arg)
 
 def prim_not(vm, arg):
     if arg is False:
