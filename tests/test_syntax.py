@@ -79,3 +79,8 @@ class TestSyntax(HelperVM):
 
         assert self.eval("(let () #t)") == True
         assert self.eval("(let ())") == None
+
+    def test_do(self):
+        assert self.eval("""
+        (do ((a 6 b) (b 9 (remainder a b)))
+            ((= b 0) a))""") == 3

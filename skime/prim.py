@@ -122,6 +122,7 @@ def load_primitives(env):
     env.alloc_local('min', PyPrimitive(prim_min, (1, -1)))
     env.alloc_local('quotient', PyPrimitive(prim_quotient, (2, 2)))
     env.alloc_local('modulo', PyPrimitive(prim_modulo, (2, 2)))
+    env.alloc_local('remainder', PyPrimitive(prim_remainder, (2, 2)))
     env.alloc_local('gcd', PyPrimitive(prim_gcd, (-1, -1)))
     env.alloc_local('lcm', PyPrimitive(prim_lcm, (-1, -1)))
     env.alloc_local('floor', PyPrimitive(prim_floor, (1, 1)))

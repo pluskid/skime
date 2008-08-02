@@ -28,6 +28,7 @@ class Compiler(object):
     sym_let = sym("let")
     sym_letrec = sym("letrec")
     sym_letstar = sym("let*")
+    sym_do = sym("do")
     
     def __init__(self):
         self.label_seed = 0
@@ -109,7 +110,8 @@ class Compiler(object):
             Compiler.sym_define_syntax: self.generate_define_syntax,
             Compiler.sym_let: self.generate_let,
             Compiler.sym_letrec: self.generate_letrec,
-            Compiler.sym_letstar: self.generate_letstar
+            Compiler.sym_letstar: self.generate_letstar,
+            Compiler.sym_do: self.generate_do
             }
         if self.self_evaluating(expr):
             if keep:
@@ -163,7 +165,7 @@ class Compiler(object):
                         
                 else:
                     arg  = expr.rest
-                    while arg is not None:
+                    while isinstance(arg, pair):
                         self.generate_expr(bdr, arg.first, keep=True, tail=False)
                         arg = arg.rest
                         argc += 1
@@ -559,3 +561,72 @@ class Compiler(object):
             bdr.emit('push_nil')
             if tail:
                 bdr.emit('ret')
+
+    def generate_do(self, bdr, expr, keep=True, tail=False):
+        if not isinstance(expr, pair):
+            raise SyntaxError("Invalid do expression")
+        init_spec = expr.first
+
+        expr = expr.rest
+        if not isinstance(expr, pair) or \
+           not isinstance(expr.first, pair):
+            raise SyntaxError("Invalid do expression, expecting (<test> <result>)")
+
+        test_expr = expr.first.first
+        result_expr = expr.first.rest
+        body = expr.rest
+
+        variables = []
+        init_vals = []
+        steps = []
+        while isinstance(init_spec, pair):
+            spec = init_spec.first
+            if not isinstance(spec, pair) or \
+               not isinstance(spec.rest, pair):
+                raise SyntaxError("Invalid init spec for do expression: %s" % spec)
+            var = self.filter_sc(spec.first)
+            if not isinstance(var, sym):
+                raise SyntaxError("Invalid init spec for do expression: %s" % spec)
+            variables.append(var.name)
+            init_vals.append(spec.rest.first)
+
+            if isinstance(spec.rest.rest, pair):
+                steps.append(spec.rest.rest.first)
+            else:
+                steps.append(None)
+
+            init_spec = init_spec.rest
+        if init_spec is not None:
+            raise SyntaxError("Invalid init specs for do expression")
+            
+        for val in init_vals:
+            self.generate_expr(bdr, val, keep=True, tail=False)
+
+        lam_bdr = bdr.push_proc(args=variables, rest_arg=False)
+        lbl_test = self.next_label()
+        lbl_end = self.next_label()
+
+        lam_bdr.def_label(lbl_test)
+        self.generate_expr(lam_bdr, test_expr, keep=True, tail=False)
+        lam_bdr.emit('goto_if_not_false', lbl_end)
+        self.generate_body(lam_bdr, body, keep=False, tail=False)
+
+        for i in range(len(steps)):
+            if steps[i] is not None:
+                self.generate_expr(lam_bdr, steps[i], keep=True, tail=False)
+        for i in range(len(steps)-1, -1, -1):
+            if steps[i] is not None:
+                lam_bdr.emit_local('set', variables[i])
+
+        lam_bdr.emit('goto', lbl_test)
+        lam_bdr.def_label(lbl_end)
+        self.generate_body(lam_bdr, result_expr, keep=True, tail=True)
+
+        bdr.emit('fix_lexical')
+
+        if tail:
+            bdr.emit('tail_call', len(variables))
+        else:
+            bdr.emit('call', len(variables))
+            if not keep:
+                bdr.emit('pop')
