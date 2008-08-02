@@ -76,6 +76,10 @@ def load_primitives(env):
     env.alloc_local('<=', PyPrimitive(less_equal, (2, -1)))
     env.alloc_local('>=', PyPrimitive(more_equal, (2, -1)))
 
+    env.alloc_local('equal?', PyPrimitive(equal, (2, 2)))
+    env.alloc_local('eq?', PyPrimitive(prim_eqv, (2, 2)))
+    env.alloc_local('eqv?', PyPrimitive(prim_eqv, (2, 2)))
+
     env.alloc_local("log", PyPrimitive(prim_log, (1, 1)))
     env.alloc_local("exp", PyPrimitive(prim_exp, (1, 1)))
     env.alloc_local("sin", PyPrimitive(prim_sin, (1, 1)))
@@ -472,6 +476,9 @@ def prim_string_to_symbol(vm, name):
 def prim_symbol_to_string(vm, s):
     type_check(s, sym)
     return s.name
+
+def prim_eqv(vm, a, b):
+    return a is b
 
 
 ########################################
