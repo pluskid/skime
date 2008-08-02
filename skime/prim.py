@@ -77,6 +77,7 @@ def load_primitives(env):
     env.alloc_local('>=', PyPrimitive(more_equal, (2, -1)))
 
     env.alloc_local("log", PyPrimitive(prim_log, (1, 1)))
+    env.alloc_local("exp", PyPrimitive(prim_exp, (1, 1)))
     env.alloc_local("sin", PyPrimitive(prim_sin, (1, 1)))
     env.alloc_local("cos", PyPrimitive(prim_cos, (1, 1)))
     env.alloc_local("tan", PyPrimitive(prim_tan, (1, 1)))
@@ -112,7 +113,26 @@ def load_primitives(env):
 
     env.alloc_local('exact?', PyPrimitive(prim_exact_p, (1, 1)))
     env.alloc_local('inexact?', PyPrimitive(prim_inexact_p, (1, 1)))
-    env.alloc_local('zero?', PyPrimitive(prim_zero_p, (1, 1)))    
+    env.alloc_local('zero?', PyPrimitive(prim_zero_p, (1, 1)))
+    env.alloc_local('positive?', PyPrimitive(prim_positive_p, (1, 1)))
+    env.alloc_local('negative?', PyPrimitive(prim_negative_p, (1, 1)))
+    env.alloc_local('even?', PyPrimitive(prim_even_p, (1, 1)))
+    env.alloc_local('odd?', PyPrimitive(prim_odd_p, (1, 1)))
+    env.alloc_local('max', PyPrimitive(prim_max, (1, -1)))
+    env.alloc_local('min', PyPrimitive(prim_min, (1, -1)))
+    env.alloc_local('quotient', PyPrimitive(prim_quotient, (2, 2)))
+    env.alloc_local('modulo', PyPrimitive(prim_modulo, (2, 2)))
+    env.alloc_local('gcd', PyPrimitive(prim_gcd, (-1, -1)))
+    env.alloc_local('lcm', PyPrimitive(prim_lcm, (-1, -1)))
+    env.alloc_local('floor', PyPrimitive(prim_floor, (1, 1)))
+    env.alloc_local('ceiling', PyPrimitive(prim_ceiling, (1, 1)))
+    env.alloc_local('truncate', PyPrimitive(prim_truncate, (1, 1)))
+    env.alloc_local('round', PyPrimitive(prim_round, (1, 1)))
+    env.alloc_local('asin', PyPrimitive(prim_asin, (1, 1)))
+    env.alloc_local('acos', PyPrimitive(prim_acos, (1, 1)))
+    env.alloc_local('atan', PyPrimitive(prim_atan, (1, 2)))
+    env.alloc_local('sqrt', PyPrimitive(prim_sqrt, (1, 1)))
+    env.alloc_local('expt', PyPrimitive(prim_expt, (2, 2)))
     env.alloc_local('null?', PyPrimitive(prim_null_p, (1, 1)))
     env.alloc_local('list?', PyPrimitive(prim_list_p, (1, 1)))
 
@@ -207,6 +227,94 @@ def more_equal(vm, a, b, *args):
         b = x
     return True
 
+def prim_positive_p(vm, arg):
+    type_check(arg, (int, long, float))
+    return arg > 0
+def prim_negative_p(vm, arg):
+    type_check(arg, (int, long, float))
+    return arg < 0
+def prim_odd_p(vm, arg):
+    type_check(arg, (int, long))
+    return arg % 2 != 0
+def prim_even_p(vm, arg):
+    type_check(arg, (int, long))
+    return arg % 2 == 0
+def prim_max(vm, *args):
+    return max(args)
+def prim_min(vm, *args):
+    return min(args)
+def prim_quotient(vm, a, b):
+    type_check(a, (int, long))
+    type_check(b, (int, long))
+    return a/b
+# remainder has the same sign as b
+def prim_remainder(vm, a, b):
+    type_check(a, (int, long))
+    type_check(b, (int, long))
+    if a > 0:
+        return a%b
+    return (-a)%(-b)
+# modulo has the same sign as a
+def prim_modulo(vm, a, b):
+    type_check(a, (int, long))
+    type_check(b, (int, long))
+    return a%b
+
+
+def gcd(a, b):
+    while b != 0:
+        b, a = a % b, b
+    return a
+def lcm(a, b):
+    return a*b/gcd(a, b)
+def prim_gcd(vm, *args):
+    if args is None:
+        return 0
+    if len(args) == 1:
+        return abs(args[0])
+    a, b, args = args[0], args[1], args[2:]
+    type_check(a, (int, long))
+    type_check(b, (int, long))
+    g = gcd(a, b)
+    for x in args:
+        type_check(x, (int, long))
+        g = gcd(g, x)
+    return abs(g)
+    
+def prim_lcm(vm, *args):
+    if args is None:
+        return 1
+    if len(args) == 1:
+        return abs(args[0])
+    a, b, args = args[0], args[1], args[2:]
+    type_check(a, (int, long))
+    type_check(b, (int, long))
+    l = lcm(a, b)
+    for x in args:
+        type_check(x, (int, long))
+        l = lcm(l, x)
+    return abs(l)
+
+    
+@type_error_decorator
+def prim_floor(vm, a):
+    return math.floor(a)
+@type_error_decorator
+def prim_ceiling(vm, a):
+    return math.ceil(a)
+@type_error_decorator
+def prim_truncate(vm, a):
+    if a > 0:
+        return math.floor(a)
+    return math.ceil(a)
+@type_error_decorator
+def prim_round(vm, a):
+    return round(a)
+
+@type_error_decorator
+def prim_exp(vm, arg):
+    return math.exp(arg)
+
 @type_error_decorator
 def prim_log(vm, arg):
     return math.log(arg)
@@ -222,6 +330,29 @@ def prim_cos(vm, arg):
 @type_error_decorator
 def prim_tan(vm, arg):
     return math.tan(arg)
+
+@type_error_decorator
+def prim_asin(vm, arg):
+    return math.asin(arg)
+
+@type_error_decorator
+def prim_acos(vm, arg):
+    return math.acos(arg)
+
+@type_error_decorator
+def prim_atan(vm, arg, *arg2):
+    if arg2 is None:
+        return math.atan(arg)
+    else:
+        return math.atan(float(arg2[0])/arg)
+
+@type_error_decorator
+def prim_sqrt(vm, arg):
+    return math.sqrt(arg)
+
+@type_error_decorator
+def prim_expt(vm, a, b):
+    return a ** b
 
 @type_error_decorator
 def prim_abs(vm, arg):
@@ -248,18 +379,17 @@ def prim_set_rest_x(vm, arg, val):
     arg.rest = val
 
 def prim_exact_p(vm, arg):
-    if isinstance(arg, int) or \
-       isinstance(arg, long):
+    if isinstance(arg, (int, long)):
         return True
     # python complex are always inexact
-    if isinstance(arg, float) or \
-       isinstance(arg, complex):
+    if isinstance(arg, (float, complex)):
         return False
     raise WrongArgType("Expecting a number, but got %s" % arg)
 def prim_inexact_p(vm, arg):
     return not prim_exact_p(vm, arg)
 
 def prim_zero_p(vm, arg):
+    type_check(arg, (int, long, complex, float))
     return arg == 0
     
 def prim_null_p(vm, arg):
@@ -347,16 +477,9 @@ def prim_symbol_to_string(vm, s):
 # Helper for primitives
 ########################################
 def make_type_predict(tt):
-    def predict_single(vm, obj):
+    def predict(vm, obj):
         return isinstance(obj, tt)
-    def predict_many(vm, obj):
-        for t in tt:
-            if isinstance(obj, t):
-                return True
-        return False
-    if isinstance(tt, tuple):
-        return predict_many
-    return predict_single
+    return predict
 
 def type_check(obj, t):
     if not isinstance(obj, t):
