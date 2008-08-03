@@ -84,3 +84,28 @@ class TestSyntax(HelperVM):
         assert self.eval("""
         (do ((a 6 b) (b 9 (remainder a b)))
             ((= b 0) a))""") == 3
+
+    def test_cond(self):
+        assert self.eval("""
+        (cond (#f 5 6)
+              ((> 7 8) (+ 3 4))
+              ((< 7 8)))""") == True
+
+        assert self.eval("""
+        (cond (#f 5 6)
+              ((> 7 8) (+ 3 4))
+              ((< 7 8) (+ 5 6) (+ 6 7)))""") == 13
+
+        assert self.eval("""
+        (cond (#f 5 6)
+              ((+ 2 3) => (lambda (x) (* x x)))
+              (else 10))""") == 25
+
+        assert self.eval("""
+        (cond (#f 5 6)
+              (else))""") == None
+
+        assert_raises(SyntaxError, self.eval, "(cond)")
+        assert_raises(SyntaxError, self.eval, """
+        (cond (else 5)
+              (#t 6))""")

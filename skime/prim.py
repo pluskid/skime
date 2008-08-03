@@ -146,7 +146,9 @@ def load_primitives(env):
 
     env.alloc_local('string->symbol', PyPrimitive(prim_string_to_symbol, (1, 1)))
     env.alloc_local('symbol->string', PyPrimitive(prim_symbol_to_string, (1, 1)))
-
+    env.alloc_local('number->string', PyPrimitive(prim_number_to_string, (1, 2)))
+    env.alloc_local('string->number', PyPrimitive(prim_string_to_number, (1, 2)))
+    env.alloc_local('string-append', PyPrimitive(prim_string_append, (-1, -1)))
 
 def type_error_decorator(meth):
     "Decorate method to catch Python TypeError and raise skime WrongArgType"
@@ -476,6 +478,51 @@ def prim_string_to_symbol(vm, name):
 def prim_symbol_to_string(vm, s):
     type_check(s, sym)
     return s.name
+
+def prim_number_to_string(vm, num, radix=10):
+    if radix == 10:
+        return str(num)
+    type_check(num, (int, long))
+    minus = False
+    if num < 0:
+        minus = True
+        num = -num
+    
+    if radix == 2:
+        ditigs = []
+        while num != 0:
+            digits.append(num & 1)
+            num = num >> 1
+        num.reverse()
+        fmt = ''.join(num)
+
+    if radix == 8:
+        fmt = '%o' % num
+    if radix == 16:
+        fmt = '%X' % num
+
+    if minus:
+        return '-' + fmt
+    return fmt
+
+def prim_string_to_number(vm, s, radix=10):
+    try:
+        return int(s, radix)
+    except ValueError:
+        if radix != 10:
+            raise MiscError("Only radix 10 is permitted for decimal number")
+        try:
+            if s[-1] == 'i':
+                # complex number
+                return complex(s[:-1]+'j')
+            else:
+                return float(s)
+        except ValueError:
+            return False
+
+@type_error_decorator
+def prim_string_append(vm, *strings):
+    return ''.join(strings)
 
 def prim_eqv(vm, a, b):
     return a is b

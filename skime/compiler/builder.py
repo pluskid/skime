@@ -116,6 +116,7 @@ class Builder(object):
 
         # generate_proc is a pseudo instruction
         self.stream.append(('generate_proc', bdr))
+        self.ip += 3 # push_literal + fix_lexical (2+1)
         
         return bdr
 

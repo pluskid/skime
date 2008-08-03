@@ -29,6 +29,7 @@ class Compiler(object):
     sym_letrec = sym("letrec")
     sym_letstar = sym("let*")
     sym_do = sym("do")
+    sym_cond = sym("cond")
     
     def __init__(self):
         self.label_seed = 0
@@ -111,7 +112,8 @@ class Compiler(object):
             Compiler.sym_let: self.generate_let,
             Compiler.sym_letrec: self.generate_letrec,
             Compiler.sym_letstar: self.generate_letstar,
-            Compiler.sym_do: self.generate_do
+            Compiler.sym_do: self.generate_do,
+            Compiler.sym_cond: self.generate_cond
             }
         if self.self_evaluating(expr):
             if keep:
@@ -630,3 +632,75 @@ class Compiler(object):
             bdr.emit('call', len(variables))
             if not keep:
                 bdr.emit('pop')
+
+    def generate_cond(self, bdr, expr, keep=True, tail=False):
+        if not isinstance(expr, pair):
+            raise SyntaxError("Empty cond expression")
+
+        lbl_end = self.next_label()
+        lbl_next = self.next_label()
+        first = True
+
+        while isinstance(expr, pair):
+            bdr.def_label(lbl_next)
+            lbl_next = self.next_label()
+
+            if not first:
+                bdr.emit('pop')
+                first = False
+            
+            cond_expr = expr.first
+            if not isinstance(cond_expr, pair):
+                raise SyntaxError("Invalid cond clause: %s" % cond_expr)
+            pred = cond_expr.first
+            body = cond_expr.rest
+
+            expr = expr.rest
+
+            if pred == sym('else'):
+                if body is None:
+                    bdr.emit('push_true')
+                else:
+                    if not isinstance(body, pair):
+                        raise SyntaxError("Invalid cond clause: %s" % cond_expr)
+                    if body.first == sym('=>'):
+                        if not isinstance(body.rest, pair):
+                            raise SyntaxError("Invalid cond clause, expecting expression after =>")
+                        bdr.emit('push_true')
+                        self.generate_expr(bdr, body.rest.first, keep=True, tail=False)
+                        bdr.emit('call', 1)
+                    else:
+                        self.generate_body(bdr, body, keep=True, tail=False)
+                break
+            
+            else:
+                self.generate_expr(bdr, pred, keep=True, tail=False)
+                if body is None:
+                    bdr.emit('dup')
+                    bdr.emit('goto_if_false', lbl_next)
+                else:
+                    if not isinstance(body, pair):
+                        raise SyntaxError("Invalid cond clause: %s" % cond_expr)
+                    if body.first == sym('=>'):
+                        if not isinstance(body.rest, pair):
+                            raise SyntaxError("Invalid cond clause, expecting expression after =>")
+                        bdr.emit('dup')
+                        bdr.emit('goto_if_false', lbl_next)
+                        self.generate_expr(bdr, body.rest.first, keep=True, tail=False)
+                        bdr.emit('call', 1)
+                    else:
+                        bdr.emit('goto_if_false', lbl_next)
+                        self.generate_body(bdr, body, keep=True, tail=False)
+                bdr.emit('goto', lbl_end)
+                    
+        if expr is not None:
+            raise SyntaxError("Extra garbage expression in cond expression: %s" % expr)
+        
+        bdr.def_label(lbl_next)
+        bdr.emit('push_nil')
+        bdr.def_label(lbl_end)
+
+        if not keep:
+            bdr.emit('pop')
+        if tail:
+            bdr.emit('ret')
