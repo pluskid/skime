@@ -61,8 +61,7 @@ class VM(object):
                     rest = Pair(args[i], rest)
                 ctx.env.assign_local(proc.fixed_argc, rest)
 
-            run(ctx)
-            return self.ctx.pop()
+            return run(ctx)
         
         elif isinstance(proc, Primitive):
             proc.check_arity(len(args))

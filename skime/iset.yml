@@ -43,33 +43,7 @@ instructions:
     stack_after: [retval]
     code: |
       argc = get_param(ctx, 1)
-      
-      proc = ctx.pop()
-
-      if isinstance(proc, Procedure):
-          proc.check_arity(argc)
-          nctx = Context(proc, proc.env.dup(), ctx)
-
-          for i in range(proc.fixed_argc):
-              nctx.env.assign_local(i, ctx.top(idx=argc-i))
-          if proc.fixed_argc != proc.argc:
-              rest = None
-              for i in range(argc-proc.fixed_argc):
-                  rest = Pair(ctx.top(idx=i+1), rest)
-              nctx.env.assign_local(proc.fixed_argc, rest)
-          ctx.pop_n(argc)
-    
-      elif isinstance(proc, Primitive):
-          proc.check_arity(argc)
-          args = range(argc)
-          for i in range(argc):
-              args[i] = ctx.top(idx=argc-i)
-          ctx.pop_n(argc)
-          ctx.push(proc.call(ctx.vm, *args))
-          nctx = ctx
-
-      else:
-          raise WrongArgType("Not a skime callable: %s" % proc)
+      nctx = make_call(ctx, argc)
 
       ctx.ip += $(insn_len)
       return nctx
@@ -83,35 +57,23 @@ instructions:
     stack_after: [retval]
     code: |
       argc = get_param(ctx, 1)
-      
-      proc = ctx.pop()
+      nctx = make_call(ctx, argc, tail=True)
 
-      if isinstance(proc, Procedure):
-          proc.check_arity(argc)
-          nctx = Context(proc, proc.env.dup(), ctx.parent)
+      ctx.ip += $(insn_len)
+      return nctx
 
-          for i in range(proc.fixed_argc):
-              nctx.env.assign_local(i, ctx.top(idx=argc-i))
-          if proc.fixed_argc != proc.argc:
-              rest = None
-              for i in range(argc-proc.fixed_argc):
-                  rest = Pair(ctx.top(idx=i+1), rest)
-              nctx.env.assign_local(proc.fixed_argc, rest)
-          ctx.pop_n(argc)
-    
-      elif isinstance(proc, Primitive):
-          proc.check_arity(argc)
-          args = range(argc)
-          for i in range(argc):
-              args[i] = ctx.top(idx=argc-i)
-          ctx.pop_n(argc)
+  -
+    name: call_cc
+    tags: [ctx_switch, ctrl_flow]
+    desc: Call with current continuation.
+    operands: []
+    stack_before: [lambda]
+    stack_after: [return_value]
+    code: |
+      cc = Continuation(ctx, $(insn_len), 1)
+      ctx.insert(-1, cc)
 
-          nctx = ctx.parent
-          nctx.push(proc.call(ctx.vm, *args))
-
-      else:
-          raise WrongArgType("Not a skime callable: %s" % proc)
-
+      nctx = make_call(ctx, 1)
       ctx.ip += $(insn_len)
       return nctx
 

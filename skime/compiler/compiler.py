@@ -30,6 +30,8 @@ class Compiler(object):
     sym_letstar = sym("let*")
     sym_do = sym("do")
     sym_cond = sym("cond")
+    sym_call_cc = sym("call/cc")
+    sym_call_cc2 = sym("call-with-current-continuation")
     
     def __init__(self):
         self.label_seed = 0
@@ -113,7 +115,9 @@ class Compiler(object):
             Compiler.sym_letrec: self.generate_letrec,
             Compiler.sym_letstar: self.generate_letstar,
             Compiler.sym_do: self.generate_do,
-            Compiler.sym_cond: self.generate_cond
+            Compiler.sym_cond: self.generate_cond,
+            Compiler.sym_call_cc: self.generate_call_cc,
+            Compiler.sym_call_cc2: self.generate_call_cc
             }
         if self.self_evaluating(expr):
             if keep:
@@ -704,3 +708,17 @@ class Compiler(object):
             bdr.emit('pop')
         if tail:
             bdr.emit('ret')
+
+    def generate_call_cc(self, bdr, expr, keep=True, tail=False):
+        if not isinstance(expr, pair):
+            raise SyntaxError("Empty call/cc expression")
+        if expr.rest is not None:
+            raise SyntaxError("call/cc only takes one argument, but got extra %s" % expr.rest)
+
+        lam = expr.first
+        self.generate_expr(bdr, lam, keep=True, tail=False)
+        bdr.emit('call_cc')
+        if tail:
+            bdr.emit('ret')
+        if not keep:
+            bdr.emit('pop')

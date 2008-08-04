@@ -27,8 +27,7 @@ class Form(object):
     def eval(self, env, vm):
         "Eval the form under env and vm."
         ctx = Context(self, env, vm.ctx)
-        run(ctx)
-        return ctx.pop()
+        return run(ctx)
 
     def disasm(self):
         "Show the disassemble of the instructions of the form. Useful for debug."
