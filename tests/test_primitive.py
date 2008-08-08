@@ -27,7 +27,9 @@ class TestArithmetic(HelperVM):
         assert self.eval('(*)') == 1
 
         assert self.eval('(/ 6 3)') == 2
-        assert self.eval('(/ 2)') == 0
+        # skime has no rational type, divid is
+        # done in float type
+        assert self.eval('(/ 2)') == 0.5
         assert self.eval('(/ 2.0)') == 0.5
         assert_raises(WrongArgNumber, self.eval, '(/)')
 

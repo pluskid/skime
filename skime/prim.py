@@ -181,7 +181,9 @@ def minus(vm, num, *args):
 @type_error_decorator
 def div(vm, num, *args):
     if len(args) == 0:
-        return 1/num
+        return 1.0/num
+    if isinstance(num, (int, long)):
+        num = float(num)
     for x in args:
         num /= x
     return num
