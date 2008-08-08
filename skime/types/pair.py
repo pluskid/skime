@@ -28,6 +28,8 @@ class Pair(object):
         return isinstance(other, Pair) and \
                self.first == other.first and \
                self.rest == other.rest
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __str__(self):
         segments = [self.first.__str__()]
