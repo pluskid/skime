@@ -22,8 +22,6 @@ class Builder(object):
         self.labels = {}
         # The literals
         self.literals = []
-        # The literal name => idx mapping
-        self.literals_map = {}
 
     def emit(self, insn_name, *args):
         "Emit an instruction"
@@ -140,12 +138,7 @@ class Builder(object):
                 if insn_name in ['goto', 'goto_if_false', 'goto_if_not_false']:
                     bc.append(self.labels[args[0]])
                 elif insn_name == 'push_literal':
-                    idx = self.literals_map.get(args[0])
-                    if idx is None:
-                        idx = len(self.literals)
-                        self.literals.append(args[0])
-                        self.literals_map[args[0]] = idx
-                    bc.append(idx)
+                    bc.append(self.get_literal_idx(args[0]))
                 else:
                     for x in args:
                         bc.append(x)
@@ -169,3 +162,18 @@ class Builder(object):
             depth += 1
             env = env.parent
         return (None, None)
+
+    def get_literal_idx(self, lit):
+        """\
+        Return the index in literals list if there. Or else append
+        the literal to the literals list.
+        """
+        for i in range(len(self.literals)):
+            # make sure type is the same so that 42 and 42.0 will be
+            # different literals
+            l = self.literals[i]
+            if type(l) is type(lit) and \
+               l == lit:
+                return i
+        self.literals.append(lit)
+        return len(self.literals)-1
