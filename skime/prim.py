@@ -76,7 +76,7 @@ def load_primitives(env):
     env.alloc_local('<=', PyPrimitive(less_equal, (2, -1)))
     env.alloc_local('>=', PyPrimitive(more_equal, (2, -1)))
 
-    env.alloc_local('equal?', PyPrimitive(equal, (2, 2)))
+    env.alloc_local('equal?', PyPrimitive(prim_equal, (2, 2)))
     env.alloc_local('eq?', PyPrimitive(prim_eqv, (2, 2)))
     env.alloc_local('eqv?', PyPrimitive(prim_eqv, (2, 2)))
 
@@ -191,9 +191,12 @@ def equal(vm, *args):
         return True
     a = args[0]
     b = args[1]
+    type_check(a, (int, long, float, complex))
+    type_check(b, (int, long, float, complex))
     if a != b:
         return False
     for x in args[2:]:
+        type_check(a, (int, long, float, complex))
         if x != a:
             return False
     return True
@@ -523,6 +526,9 @@ def prim_string_to_number(vm, s, radix=10):
 @type_error_decorator
 def prim_string_append(vm, *strings):
     return ''.join(strings)
+
+def prim_equal(vm, a, b):
+    return a == b
 
 def prim_eqv(vm, a, b):
     return a is b
