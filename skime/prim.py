@@ -156,7 +156,7 @@ def type_error_decorator(meth):
         try:
             return meth(*args)
         except TypeError as e:
-            raise WrongArgType(e.message)
+            raise WrongArgType(*e.args)
     return new_meth
 
 @type_error_decorator
