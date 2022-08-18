@@ -8,7 +8,7 @@ class Symbol(object):
         Get the interned symbol of name. If no found, create
         a new interned symbol.
         """
-        if cls.symbols.has_key(name):
+        if name in cls.symbols:
             return cls.symbols[name]
 
         sym = object.__new__(cls)

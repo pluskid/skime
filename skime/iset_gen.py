@@ -3,7 +3,7 @@ import yaml
 
 def gen_tags(tags):
     stmts =  []
-    for tag, i in zip(tags, range(len(tags))):
+    for tag, i in zip(tags, list(range(len(tags)))):
         stmts.append('TAG_%-12s = %d' % (tag.upper(), 2**i))
     return '\n'.join(stmts)
 
@@ -54,7 +54,7 @@ def gen_insn_table(instructions):
                                        'stack_before', 'stack_after', 'code']]) + \
                ")"
 
-    insns = zip(range(len(instructions)), instructions)
+    insns = list(zip(list(range(len(instructions))), instructions))
     
     return "INSTRUCTIONS = [\n" + \
            ",\n".join([gen_insn(i, insn)

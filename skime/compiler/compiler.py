@@ -69,7 +69,7 @@ class Compiler(object):
         return None
     
     def self_evaluating(self, expr):
-        for t in [int, long, complex, float, str, unicode, bool, NoneType]:
+        for t in [int, int, complex, float, str, str, bool, NoneType]:
             if isinstance(expr, t):
                 return True
         return False
@@ -282,7 +282,7 @@ class Compiler(object):
             if tail:
                 base_builder.emit('ret')
 
-        except AttributeError, e:
+        except AttributeError as e:
             raise SyntaxError("Broken lambda expression: "+e.message)
 
     def generate_let(self, bdr, expr, keep=True, tail=False):
