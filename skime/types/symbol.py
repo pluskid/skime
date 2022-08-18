@@ -21,6 +21,9 @@ class Symbol(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __hash__(self):
+        return id(self)
+
     def get_name(self):
         return self._name
     def set_name(self):
