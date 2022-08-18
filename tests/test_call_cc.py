@@ -1,11 +1,9 @@
 import helper
 
 class TestCallCc(object):
-    def __init__(self):
-        self.compiler = helper.Compiler()
-        
     def eval(self, vm, code):
-        proc = self.compiler.compile(helper.parse(code), vm.env)
+        compiler = helper.Compiler()
+        proc = compiler.compile(helper.parse(code), vm.env)
         return vm.run(proc)
 
     def test_call_cc(self):

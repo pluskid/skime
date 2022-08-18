@@ -8,11 +8,9 @@ from skime.compiler.compiler import Compiler
 from skime.compiler.parser import parse
 
 class HelperVM(object):
-    def __init__(self):
-        self.compiler = Compiler()
-        
     def eval(self, code):
+        compiler = Compiler()
         vm = VM()
-        proc = self.compiler.compile(parse(code), vm.env)
+        proc = compiler.compile(parse(code), vm.env)
         return vm.run(proc)
 
