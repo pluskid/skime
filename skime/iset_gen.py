@@ -3,7 +3,7 @@ import yaml
 
 def gen_tags(tags):
     stmts =  []
-    for tag, i in zip(tags, range(len(tags))):
+    for tag, i in zip(tags, list(range(len(tags)))):
         stmts.append('TAG_%-12s = %d' % (tag.upper(), 2**i))
     return '\n'.join(stmts)
 
@@ -54,7 +54,7 @@ def gen_insn_table(instructions):
                                        'stack_before', 'stack_after', 'code']]) + \
                ")"
 
-    insns = zip(range(len(instructions)), instructions)
+    insns = list(zip(list(range(len(instructions))), instructions))
     
     return "INSTRUCTIONS = [\n" + \
            ",\n".join([gen_insn(i, insn)
@@ -129,7 +129,7 @@ def make_call(ctx, argc, tail=False):
 
     elif isinstance(proc, Primitive):
         proc.check_arity(argc)
-        args = range(argc)
+        args = list(range(argc))
         for i in range(argc):
             args[i] = ctx.top(idx=argc-i)
         ctx.pop_n(argc)
@@ -179,14 +179,14 @@ class Instruction(object):
     def length_get(self):
         return len(self.operands)+1
     def length_set(self):
-        raise AttributeError, 'length attribute is read only'
+        raise AttributeError('length attribute is read only')
     length = property(length_get, length_set, 'length of the instruction')
 
 $(instruction_table)
 """
 
 if __name__ == '__main__':
-    iset = yaml.load(open("iset.yml").read())
+    iset = yaml.safe_load(open("iset.yml").read())
 
     env = {
         'tags' : gen_tags(iset['tags']),

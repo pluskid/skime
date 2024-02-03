@@ -107,11 +107,11 @@ def load_primitives(env):
                    (pair, "pair?"),
                    (sym, "symbol?"),
                    (str, "string?"),
-                   ((int, long, float, complex), "number?"),
-                   ((int, long, float), "rational?"),
-                   ((int, long, float), "real?"),
-                   ((int, long, float, complex), "complex?"),
-                   ((int, long), "integer?"),
+                   ((int, int, float, complex), "number?"),
+                   ((int, int, float), "rational?"),
+                   ((int, int, float), "real?"),
+                   ((int, int, float, complex), "complex?"),
+                   ((int, int), "integer?"),
                    ((Procedure, Primitive), "procedure?")]:
         env.alloc_local(name, PyPrimitive(make_type_predict(t), (1, 1)))
 
@@ -155,8 +155,8 @@ def type_error_decorator(meth):
     def new_meth(*args):
         try:
             return meth(*args)
-        except TypeError, e:
-            raise WrongArgType(e.message)
+        except TypeError as e:
+            raise WrongArgType(*e.args)
     return new_meth
 
 @type_error_decorator
@@ -182,7 +182,7 @@ def minus(vm, num, *args):
 def div(vm, num, *args):
     if len(args) == 0:
         return 1.0/num
-    if isinstance(num, (int, long)):
+    if isinstance(num, int):
         num = float(num)
     for x in args:
         num /= x
@@ -193,12 +193,12 @@ def equal(vm, *args):
         return True
     a = args[0]
     b = args[1]
-    type_check(a, (int, long, float, complex))
-    type_check(b, (int, long, float, complex))
+    type_check(a, (int, int, float, complex))
+    type_check(b, (int, int, float, complex))
     if a != b:
         return False
     for x in args[2:]:
-        type_check(a, (int, long, float, complex))
+        type_check(a, (int, int, float, complex))
         if x != a:
             return False
     return True
@@ -240,36 +240,36 @@ def more_equal(vm, a, b, *args):
     return True
 
 def prim_positive_p(vm, arg):
-    type_check(arg, (int, long, float))
+    type_check(arg, (int, int, float))
     return arg > 0
 def prim_negative_p(vm, arg):
-    type_check(arg, (int, long, float))
+    type_check(arg, (int, int, float))
     return arg < 0
 def prim_odd_p(vm, arg):
-    type_check(arg, (int, long))
+    type_check(arg, (int, int))
     return arg % 2 != 0
 def prim_even_p(vm, arg):
-    type_check(arg, (int, long))
+    type_check(arg, (int, int))
     return arg % 2 == 0
 def prim_max(vm, *args):
     return max(args)
 def prim_min(vm, *args):
     return min(args)
 def prim_quotient(vm, a, b):
-    type_check(a, (int, long))
-    type_check(b, (int, long))
+    type_check(a, (int, int))
+    type_check(b, (int, int))
     return a/b
 # remainder has the same sign as b
 def prim_remainder(vm, a, b):
-    type_check(a, (int, long))
-    type_check(b, (int, long))
+    type_check(a, (int, int))
+    type_check(b, (int, int))
     if a > 0:
         return a%b
     return (-a)%(-b)
 # modulo has the same sign as a
 def prim_modulo(vm, a, b):
-    type_check(a, (int, long))
-    type_check(b, (int, long))
+    type_check(a, (int, int))
+    type_check(b, (int, int))
     return a%b
 
 
@@ -285,11 +285,11 @@ def prim_gcd(vm, *args):
     if len(args) == 1:
         return abs(args[0])
     a, b, args = args[0], args[1], args[2:]
-    type_check(a, (int, long))
-    type_check(b, (int, long))
+    type_check(a, (int, int))
+    type_check(b, (int, int))
     g = gcd(a, b)
     for x in args:
-        type_check(x, (int, long))
+        type_check(x, (int, int))
         g = gcd(g, x)
     return abs(g)
     
@@ -299,11 +299,11 @@ def prim_lcm(vm, *args):
     if len(args) == 1:
         return abs(args[0])
     a, b, args = args[0], args[1], args[2:]
-    type_check(a, (int, long))
-    type_check(b, (int, long))
+    type_check(a, (int, int))
+    type_check(b, (int, int))
     l = lcm(a, b)
     for x in args:
-        type_check(x, (int, long))
+        type_check(x, (int, int))
         l = lcm(l, x)
     return abs(l)
 
@@ -391,7 +391,7 @@ def prim_set_rest_x(vm, arg, val):
     arg.rest = val
 
 def prim_exact_p(vm, arg):
-    if isinstance(arg, (int, long)):
+    if isinstance(arg, int):
         return True
     # python complex are always inexact
     if isinstance(arg, (float, complex)):
@@ -401,7 +401,7 @@ def prim_inexact_p(vm, arg):
     return not prim_exact_p(vm, arg)
 
 def prim_zero_p(vm, arg):
-    type_check(arg, (int, long, complex, float))
+    type_check(arg, (int, int, complex, float))
     return arg == 0
     
 def prim_null_p(vm, arg):
@@ -487,7 +487,7 @@ def prim_symbol_to_string(vm, s):
 def prim_number_to_string(vm, num, radix=10):
     if radix == 10:
         return str(num)
-    type_check(num, (int, long))
+    type_check(num, (int, int))
     minus = False
     if num < 0:
         minus = True

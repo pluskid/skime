@@ -1,4 +1,4 @@
-from cStringIO        import StringIO
+from io        import StringIO
 
 from .errors          import MiscError
 from .env             import Environment

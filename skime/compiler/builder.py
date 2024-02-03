@@ -27,11 +27,10 @@ class Builder(object):
         "Emit an instruction"
         insn = INSN_MAP.get(insn_name)
         if insn is None:
-            raise TypeError, "No such instruction: %s" % insn_name
+            raise TypeError("No such instruction: %s" % insn_name)
         if insn.length != 1+len(args):
-            raise TypeError, \
-                  "INSTRUCTION %s expects %d parameters, but %d given" % \
-                  (insn_name, insn.length-1, len(args))
+            raise TypeError("INSTRUCTION %s expects %d parameters, but %d given" % \
+                  (insn_name, insn.length-1, len(args)))
 
         if insn_name == 'push_literal':
             lit = args[0]
@@ -63,7 +62,7 @@ class Builder(object):
     def def_label(self, name):
         "Define a label at current ip."
         if self.labels.get(name) is not None:
-            raise TypeError, "Duplicated label: %s" % name
+            raise TypeError("Duplicated label: %s" % name)
         self.labels[name] = self.ip
 
     def emit_local(self, action, name, dyn_env=None):

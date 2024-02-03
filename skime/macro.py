@@ -197,8 +197,8 @@ class LiteralMatcher(Matcher):
     def match(self, env, expr, match_dict):
         if self.ellipsis:
             try:
-	    	while True:
-		    self.match_literal(env, expr)
+                while True:
+                    self.match_literal(env, expr)
                     expr = expr.rest
             except MatchError:
                 pass
